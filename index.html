@@ -297,7 +297,6 @@ body{font-synthesis:none}
         <div class="money" id="money">0</div>
       </div>
       <div class="panel needs" id="needs"></div>
-      <div class="panel queue" id="queue" hidden><div class="qt">Acciones</div><div id="queueList"></div></div>
     </div>
     <div class="col right">
       <div class="panel clock">
@@ -313,6 +312,7 @@ body{font-synthesis:none}
     </div>
   </div>
   <div class="bottom">
+    <div class="panel queue" id="queue" hidden><div class="qt">Acciones</div><div id="queueList"></div></div>
     <div class="panel cat" id="catalog" hidden>
       <div class="cat-h"><div class="tabs" id="tabs"></div><div class="catmoney" id="catMoney"></div></div>
       <div class="items" id="items"></div>
@@ -476,6 +476,20 @@ html,body{overscroll-behavior:none}
   .item{flex-basis:70px!important}.item img{width:44px!important;height:44px!important}
   .item b{font-size:10px!important;min-height:2.2em}
 }
+</style>
+<style id="fixes3">
+/* ===== Cola de acciones: tira horizontal sobre el dock =====
+   Antes vivía en la columna de la izquierda y con 7 acciones se salía
+   de la pantalla. Ahora es una tira horizontal con scroll, como en Los Sims. */
+#queue{width:min(560px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px);padding:6px 8px!important;box-sizing:border-box}
+#queue .qt{flex:0 0 auto;align-self:center;padding:0 4px 0 2px}
+#queueList{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;-webkit-overflow-scrolling:touch;align-items:center}
+#queue .qi{flex:0 0 auto;margin-top:0;padding:4px 6px 4px 10px}
+#queue .qi.cur{outline:2px solid var(--navy)}
+#queue .ql{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#queue .qx{flex:0 0 auto;width:28px;height:28px;min-width:28px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:rgba(20,40,96,.14);color:var(--ink);font-size:15px;font-weight:800;line-height:1;cursor:pointer;padding:0}
+#queue .qx:active{background:rgba(20,40,96,.32)}
+#queue .qall{flex:0 0 auto;border:1px solid var(--line);border-radius:8px;background:var(--glass2);color:var(--fg);font:600 12px var(--display);padding:6px 10px;cursor:pointer}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -2755,12 +2769,24 @@ function updateHud(dt) {
   $('#clockTime').textContent = ((h + 11) % 12 + 1) + ':' + String(mi).padStart(2, '0'); $('#clockAmpm').textContent = h < 12 ? 'AM' : 'PM';
   $('#clockDay').textContent = DAYS[(G.day - 1) % 7] + ' · Día ' + G.day;
   const q = $('#queue'); q.hidden = !S.queue.length;
-  const key = S.queue.map(x => x.label).join('|') + (S.state);
+  /* La clave es SOLO la cola: antes incluía S.state y cada cambio de estado
+     destruía los nodos de la lista justo mientras el dedo tocaba la X,
+     así que el toque a veces no hacía nada. */
+  const key = S.queue.map(x => x.label).join('|');
   if (key !== updateHud.k) {
     updateHud.k = key; const l = $('#queueList'); l.innerHTML = '';
-    S.queue.forEach((it, i) => { const d = document.createElement('div'); d.className = 'qi'; d.innerHTML = '<span></span><span>✕</span>'; d.firstChild.textContent = it.label || (it.act && it.act.label) || 'Acción'; d.title = 'Cancelar'; d.addEventListener('click', () => cancelItem(i)); l.appendChild(d); });
+    S.queue.forEach((it, i) => { const d = document.createElement('div'); d.className = 'qi' + (i === 0 ? ' cur' : ''); d.dataset.i = i; d.innerHTML = '<span class="ql"></span><button class="qx" type="button" aria-label="Cancelar acción">✕</button>'; d.querySelector('.ql').textContent = it.label || (it.act && it.act.label) || 'Acción'; d.title = 'Cancelar'; l.appendChild(d); });
+    if (S.queue.length > 1) { const c = document.createElement('button'); c.className = 'qall'; c.type = 'button'; c.textContent = 'Limpiar'; l.appendChild(c); }
   }
 }
+/* Un solo clic delegado en la lista: sobrevive a los re-render y lee el
+   índice en el momento del toque, así la X siempre borra la acción que se ve. */
+$('#queueList').addEventListener('click', e => {
+  if (e.target.closest('.qall')) { cancelAll(); return; }
+  const chip = e.target.closest('.qi'); if (!chip) return;
+  cancelItem(+chip.dataset.i);
+});
+function cancelAll() { cancelCurrent(); S.queue.length = 0; }
 const bub = $('#bubble'), _v = new THREE.Vector3();
 function updateBubble() {
   const txt = S.bubble ? S.bubble.text : null;
