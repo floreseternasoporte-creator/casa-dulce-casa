@@ -3038,7 +3038,7 @@ const VIS = (() => {
     if (!G.started || !SPEED_F[G.speed]) return;
     const f = SPEED_F[G.speed] * dt, h = (G.min / 60) % 24;
     if (V.st === 'idle') {
-      if (abs() >= V.next && h >= 10 && h < 20 && !S.queue.some(q => q.kind === 'walk' && q.auto === false && false)) {
+      if (abs() >= V.next && h >= 10 && h < 20 && !PARTY.on && !S.queue.some(q => q.kind === 'walk' && q.auto === false && false)) {
         V.x = 22.5; V.z = 36; g.visible = true; go([[22.5, 28.9], [22.5, 24.0]], 'in');
         toast('¡Alguien llama a la puerta!'); note(659.3, .07, .7); setTimeout(() => note(523.3, .07, .9), 380);
       }
@@ -4938,6 +4938,235 @@ $('#help ul').insertAdjacentHTML('beforeend', '<li><b>Comida:</b> la nevera y la
   $('#help ul').insertAdjacentHTML('beforeend', '<li><b>Deco:</b> nueva pestaña en Construir con cuadros, cortinas, alfombras, candelabros y más. <b>Acciones libres:</b> toca a tu Sim para meditar, practicar un discurso o hacer flexiones. Nuevas habilidades: Carisma y Jardinería.</li>');
   window.CDC8 = { N8 };
 }
+
+/* ===== Fiestas en casa e invitar amigos =====
+   El teléfono organiza fiestas (los invitados VIENEN de verdad, bailan,
+   comen y charlan) o quedadas casuales con 1-2 amigos. Cada invitado es
+   una figura propia con su ropa y su pelo, no el visitante único de VIS.
+   Si recargas a mitad de fiesta, la fiesta se acaba (no se guarda el
+   estado, solo el dinero gastado y la amistad ganada). */
+const PARTY = { on: false, ending: false, mode: '', type: '', guests: [], queue: [], nextArrive: 0, endAbs: 0, score: 0, music: false, plan: null };
+const PARTY_TYPES = { party: { n: '🎉 Fiesta', cost: 50 }, cena: { n: '🍽️ Cena', cost: 80 }, cumple: { n: '🎂 Cumpleaños', cost: 80 } };
+const PARTY_SPOTS = [[20.5, 26.5], [24.5, 26.5], [21, 24], [24, 24], [22.5, 22]];
+document.head.insertAdjacentHTML('beforeend', '<style id="fixes4">#partyBar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;font-weight:700;color:var(--ink)}#partyBar .btn{margin-left:auto}</style>');
+function makeGuestFigure(n) {
+  const g = new THREE.Group(), mt = c => M(c, .8);
+  const part = (geo, c, x, y, z) => { const m = shadowize(new THREE.Mesh(geo, mt(c))); m.position.set(x, y, z); return m; };
+  g.add(part(new THREE.CylinderGeometry(.17, .15, .55, 12), n.shirt, 0, 1.12, 0));
+  g.add(part(new THREE.SphereGeometry(.13, 14, 12), n.skin, 0, 1.62, 0));
+  g.add(part(new THREE.SphereGeometry(.14, 14, 10, 0, TAU, 0, Math.PI * .55), n.hair, 0, 1.64, -.01));
+  const limb = (x, y, len, c) => { const p = new THREE.Group(); p.position.set(x, y, 0); const m = new THREE.Mesh(new THREE.CylinderGeometry(.055, .05, len, 8), mt(c)); m.position.y = -len / 2; shadowize(m); p.add(m); g.add(p); return p; };
+  const aL = limb(.22, 1.35, .5, n.shirt), aR = limb(-.22, 1.35, .5, n.shirt), lL = limb(.09, .85, .85, 0x3a4a6a), lR = limb(-.09, .85, .85, 0x3a4a6a);
+  g.visible = false; world.add(g);
+  return { g, aL, aR, lL, lR };
+}
+const GUEST_FIGS = [];
+const getGuestFigure = i => (GUEST_FIGS[i] || (GUEST_FIGS[i] = makeGuestFigure(NG.list[i])));
+function addRelTo(i, n) {
+  NG.list[i].pts = Math.max(-60, NG.list[i].pts + n);
+  if (i === NG.cur) REL.pts = NG.list[i].pts;
+  ngSave();
+}
+const partyBar = document.createElement('div');
+partyBar.id = 'partyBar'; partyBar.className = 'panel'; partyBar.hidden = true;
+document.querySelector('#hud .top .col.right').appendChild(partyBar);
+partyBar.addEventListener('click', e => { if (e.target.closest('[data-pend]')) endParty(); });
+function updatePartyBar() {
+  if (!PARTY.on) { partyBar.hidden = true; return; }
+  partyBar.hidden = false;
+  const left = Math.max(0, PARTY.endAbs - jobAbs());
+  const mood = PARTY.mode === 'hangout' ? 'de visita' : PARTY.score >= 300 ? '🔥 legendaria' : PARTY.score >= 150 ? '😄 muy buena' : PARTY.score >= 50 ? '🙂 animada' : '😐 floja';
+  partyBar.innerHTML = '<span>' + (PARTY.mode === 'hangout' ? '☕ Visita' : '🎉 Fiesta') + ' · quedan ' + Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0') + ' · ambiente ' + mood + '</span><button class="btn sm" data-pend="1">Terminar</button>';
+}
+const partyLvl = i => { const pts = NG.list[i].pts; return RLN[RT.filter(x => pts >= x).length]; };
+function planHTML() {
+  const plan = PARTY.plan;
+  let h = '<h3 style="margin:0 0 6px;font:400 22px var(--display);color:var(--navy)">' + (plan.mode === 'party' ? 'Organizar una fiesta' : 'Invitar amigos') + '</h3>';
+  h += '<div style="font-weight:800;color:#3a4f7a;margin-bottom:6px">¿A quién invitas?</div><div style="display:flex;flex-direction:column;gap:6px">';
+  NG.list.forEach((n, i) => { h += '<button class="btn' + (plan.sel[i] ? ' on' : '') + '" data-p="guest" data-i="' + i + '" style="text-align:left">' + n.name + ' · ' + partyLvl(i) + '</button>'; });
+  h += '</div>';
+  if (plan.mode === 'party') {
+    h += '<div style="font-weight:800;color:#3a4f7a;margin:8px 0 6px">¿Qué tipo de fiesta?</div><div style="display:flex;flex-direction:column;gap:6px">';
+    for (const k of ['party', 'cena', 'cumple']) {
+      if (k === 'cumple' && LIFE.bdDay !== G.day) continue;
+      const t = PARTY_TYPES[k];
+      h += '<button class="btn' + (plan.type === k ? ' on' : '') + '" data-p="type" data-t="' + k + '" style="text-align:left">' + t.n + ' · $' + t.cost + '</button>';
+    }
+    h += '</div><div style="font-weight:800;color:#3a4f7a;margin-top:8px;font-size:12px">Los invitados llegan en unos minutos y se quedan unas 3 horas. Si tienes equipo de música o tocadiscos, bailan más.</div>';
+  } else {
+    h += '<div style="font-weight:800;color:#3a4f7a;margin-top:8px;font-size:12px">Pasan el rato en casa unos 45 minutos. Máximo 2 amigos.</div>';
+  }
+  h += '<div style="display:flex;gap:6px;margin-top:10px"><button class="btn on" data-p="' + (plan.mode === 'party' ? 'start' : 'hstart') + '" style="flex:1;justify-content:center">' + (plan.mode === 'party' ? 'Empezar la fiesta' : 'Invitar a pasar el rato') + '</button><button class="btn" data-p="back">Atrás</button></div>';
+  return h;
+}
+{ const _rpP = renderPhone; renderPhone = function () { _rpP(); const p = $('#phone'); if (!p || p.hidden) return;
+  if (PARTY.plan) { p.innerHTML = planHTML(); return; }
+  if (PARTY.on) p.insertAdjacentHTML('beforeend', '<button class="btn" data-a="pend" style="margin-top:8px;width:100%;justify-content:center">🎉 Terminar la fiesta</button>');
+  else p.insertAdjacentHTML('beforeend', '<button class="btn" data-a="party" style="margin-top:8px;text-align:left">🎉 Organizar una fiesta</button><button class="btn" data-a="hangout" style="text-align:left">☕ Invitar amigos a pasar el rato</button>');
+}; }
+{ const _paP = phoneAct; phoneAct = function (a) {
+  if (a === 'party') { PARTY.plan = { mode: 'party', sel: [true, true, true, true], type: 'party' }; renderPhone(); return; }
+  if (a === 'hangout') { PARTY.plan = { mode: 'hangout', sel: [true, true, false, false] }; renderPhone(); return; }
+  if (a === 'pend') { endParty(); renderPhone(); return; }
+  if (a === 'invite' && PARTY.on) { toast('Hay una fiesta en marcha', true); return; }
+  _paP(a);
+}; }
+$('#phone').addEventListener('click', e => { const t = e.target.closest('[data-p]'); if (!t) return;
+  const k = t.dataset.p, plan = PARTY.plan; if (!plan) return;
+  if (k === 'back') { PARTY.plan = null; renderPhone(); }
+  else if (k === 'guest') { const i = +t.dataset.i;
+    if (!plan.sel[i] && plan.mode === 'hangout' && plan.sel.filter(Boolean).length >= 2) { toast('Máximo 2 amigos para pasar el rato', true); return; }
+    plan.sel[i] = !plan.sel[i]; renderPhone(); }
+  else if (k === 'type') { plan.type = t.dataset.t; renderPhone(); }
+  else if (k === 'start') startParty();
+  else if (k === 'hstart') startHangout();
+});
+function partyGuards() {
+  if (PARTY.on) { toast('Ya hay una fiesta en marcha', true); return false; }
+  if (JOB.atWork || OUT.on || COM.on || FAINT.on) { toast('Ahora no puedes organizar la fiesta', true); return false; }
+  if (VIS.st !== 'idle') { toast('Espera a que se vaya tu visita', true); return false; }
+  return true;
+}
+function startParty() {
+  const plan = PARTY.plan; if (!plan) return;
+  const guests = plan.sel.map((s, i) => s ? i : -1).filter(i => i >= 0);
+  if (!guests.length) { toast('Elige al menos un invitado', true); return; }
+  const cost = PARTY_TYPES[plan.type].cost;
+  if (G.money < cost) { toast('No tienes $ suficientes', true); return; }
+  if (!partyGuards()) return;
+  G.money -= cost; PARTY.plan = null;
+  PARTY.on = true; PARTY.ending = false; PARTY.mode = 'party'; PARTY.type = plan.type;
+  PARTY.guests = guests.map(i => ({ ni: i, fig: getGuestFigure(i), x: 22.5, z: 36, st: 'wait', wp: [], wi: 0, t: 0, act: 'chat', ft: 0, ph: Math.random() * 6, spot: null, came: false }));
+  PARTY.queue = guests.slice();
+  PARTY.nextArrive = jobAbs() + 5; PARTY.endAbs = jobAbs() + 180; PARTY.score = 0;
+  PARTY.music = objects.some(o => o.id === 'stereo' || o.id === 'turntable');
+  if (plan.type === 'cumple') { LIFE.party = G.day; lifeSave(); confetti(); }
+  toast('¡Fiesta en camino! Los invitados llegan en unos minutos' + (PARTY.music ? '' : ' · sin música bailan menos'));
+  note(784, .06, .6); setTimeout(() => note(1046.5, .06, .6), 150);
+  renderPhone(); saveSoon(); updatePartyBar();
+}
+function startHangout() {
+  const plan = PARTY.plan; if (!plan) return;
+  const guests = plan.sel.map((s, i) => s ? i : -1).filter(i => i >= 0);
+  if (!guests.length) { toast('Elige al menos un amigo', true); return; }
+  if (!partyGuards()) return;
+  PARTY.plan = null;
+  PARTY.on = true; PARTY.ending = false; PARTY.mode = 'hangout'; PARTY.type = 'hangout';
+  PARTY.guests = guests.map(i => ({ ni: i, fig: getGuestFigure(i), x: 22.5, z: 36, st: 'wait', wp: [], wi: 0, t: 0, act: 'chat', ft: 0, ph: Math.random() * 6, spot: null, came: false }));
+  PARTY.queue = guests.slice();
+  PARTY.nextArrive = jobAbs() + 5; PARTY.endAbs = jobAbs() + 45; PARTY.score = 0;
+  PARTY.music = objects.some(o => o.id === 'stereo' || o.id === 'turntable');
+  toast('¡Tus amigos vienen de visita!');
+  note(659.3, .06, .5);
+  renderPhone(); saveSoon(); updatePartyBar();
+}
+function endParty(reason) {
+  if (!PARTY.on || PARTY.ending) return;
+  PARTY.ending = true;
+  for (const gu of PARTY.guests) {
+    if (gu.st === 'wait') { gu.st = 'gone'; }
+    else if (gu.st === 'arrive' || gu.st === 'mingle') { gu.st = 'leave'; gu.wp = [[22.5, 28.9], [22.5, 36]]; gu.wi = 0; gu.fig.g.visible = true; }
+  }
+  if (reason === 'work') toast('Te fuiste a trabajar y la fiesta se acabó', true);
+  else if (reason === 'faint') toast('Te desmayaste y la fiesta se acabó', true);
+  updatePartyBar();
+}
+function partyPickAct() {
+  const r = Math.random();
+  if (PARTY.mode === 'hangout') {
+    if (PARTY.music && r < .15) return 'dance';
+    if (r < .3) return 'eat';
+    return 'chat';
+  }
+  if (PARTY.music && r < (PARTY.type === 'party' ? .5 : .3)) return 'dance';
+  if (r < (PARTY.type === 'cena' ? .75 : .45)) return 'eat';
+  return 'chat';
+}
+dyn.push({ update(dt, t) {
+  if (!G.started || !SPEED_F[G.speed] || !PARTY.on) return;
+  const f = SPEED_F[G.speed] * dt;
+  if (!PARTY.ending && PARTY.queue.length && jobAbs() >= PARTY.nextArrive) {
+    const ni = PARTY.queue.shift();
+    const gu = PARTY.guests.find(g => g.ni === ni);
+    gu.spot = PARTY_SPOTS.find(s => !PARTY.guests.some(g => g.spot === s)) || [22.5, 24];
+    gu.st = 'arrive'; gu.wp = [[22.5, 28.9], gu.spot]; gu.wi = 0; gu.came = true;
+    gu.fig.g.visible = true;
+    PARTY.nextArrive = jobAbs() + 8;
+    toast('¡Llegó ' + NG.list[ni].name + '!'); note(659.3, .06, .5);
+  }
+  let mingling = 0;
+  for (const gu of PARTY.guests) {
+    if (gu.st === 'gone' || gu.st === 'wait') continue;
+    const fig = gu.fig, g = fig.g;
+    if (gu.st === 'arrive' || gu.st === 'leave') {
+      const w = gu.wp[gu.wi];
+      if (!w) {
+        if (gu.st === 'leave') { g.visible = false; gu.st = 'gone'; }
+        else { gu.st = 'mingle'; gu.t = 6 + Math.random() * 8; gu.act = 'chat'; }
+      } else {
+        const dx = w[0] - gu.x, dz = w[1] - gu.z, d = Math.hypot(dx, dz), st = 2 * f;
+        g.rotation.y = angLerp(g.rotation.y, Math.atan2(dx, dz), clamp(dt * 10, 0, 1));
+        if (d <= st) { gu.x = w[0]; gu.z = w[1]; gu.wi++; }
+        else { gu.x += dx / d * st; gu.z += dz / d * st; }
+        gu.ph += f * 9;
+        fig.lL.rotation.x = Math.sin(gu.ph) * .6; fig.lR.rotation.x = -Math.sin(gu.ph) * .6;
+        fig.aL.rotation.x = -Math.sin(gu.ph) * .5; fig.aR.rotation.x = Math.sin(gu.ph) * .5;
+      }
+    } else if (gu.st === 'mingle') {
+      mingling++;
+      gu.t -= f;
+      if (gu.t <= 0) { gu.act = partyPickAct(); gu.t = 8 + Math.random() * 10; }
+      const wave = Math.sin(t * 6 + gu.ph);
+      if (gu.act === 'dance') {
+        fig.aL.rotation.x = -2.4 + wave * .2; fig.aR.rotation.x = -2.4 - wave * .2;
+        fig.lL.rotation.x = fig.lR.rotation.x = 0;
+        g.rotation.y += dt * .6;
+        if (PARTY.mode === 'party') PARTY.score += 2 * f;
+      } else if (gu.act === 'eat') {
+        fig.aR.rotation.x = -1.9 + wave * .1; fig.aL.rotation.x = -.4;
+        fig.lL.rotation.x = fig.lR.rotation.x = 0;
+        if (PARTY.mode === 'party') PARTY.score += 1 * f;
+      } else {
+        g.rotation.y = angLerp(g.rotation.y, Math.atan2(S.pos.x - gu.x, S.pos.z - gu.z), .08);
+        fig.aL.rotation.x = Math.sin(t * 3 + gu.ph) * .5 - .6; fig.aR.rotation.x = Math.sin(t * 3 + 2 + gu.ph) * .5 - .6;
+        fig.lL.rotation.x = fig.lR.rotation.x = 0;
+        gu.ft -= dt; if (gu.ft <= 0) { gu.ft = 2.5 + Math.random() * 2; emit('heart', gu.x, 2, gu.z, 0, .4, 0, 1.5, .26); }
+        if (PARTY.mode === 'party') PARTY.score += 1 * f;
+      }
+    }
+    const bob = (gu.st === 'mingle' && gu.act === 'dance') ? Math.abs(Math.sin(t * 6 + gu.ph)) * .12 : 0;
+    g.position.set(gu.x, groundY(gu.x, gu.z) + bob, gu.z);
+  }
+  if (mingling > 0) {
+    S.needs.fun = clamp(S.needs.fun + .25 * f, 0, 100);
+    S.needs.social = clamp(S.needs.social + .35 * f, 0, 100);
+    if (S.act && S.act.id === 'dance' && PARTY.mode === 'party') PARTY.score += 2 * f;
+  }
+  if (PARTY.ending && PARTY.guests.every(gu => gu.st === 'gone')) {
+    PARTY.on = false; PARTY.ending = false; updatePartyBar();
+    if (PARTY.mode === 'party') {
+      const sc = PARTY.score;
+      const gain = sc >= 300 ? 12 : sc >= 150 ? 8 : 4;
+      for (const gu of PARTY.guests) if (gu.came) addRelTo(gu.ni, gain + (PARTY.type === 'cumple' ? 4 : 0));
+      if (sc >= 300) S.needs.fun = clamp(S.needs.fun + 30, 0, 100);
+      toast(sc >= 300 ? '🎉 ¡Fiesta legendaria! Todo el mundo lo pasó genial' : sc >= 150 ? '🎉 ¡Buena fiesta! +amistad con tus invitados' : '🎉 Fiesta tranquila · +amistad con tus invitados');
+      note(784, .06, .6);
+    } else {
+      for (const gu of PARTY.guests) if (gu.came) addRelTo(gu.ni, 3);
+      toast('☕ ¡Qué rato tan bueno! +amistad');
+    }
+    renderPhone();
+    saveSoon();
+  }
+} });
+setInterval(() => {
+  if (!G.started || !G.speed || !PARTY.on || PARTY.ending) return;
+  if (jobAbs() >= PARTY.endAbs) { endParty(); return; }
+  if (JOB.atWork) { endParty('work'); return; }
+  if (FAINT.on) { endParty('faint'); return; }
+  updatePartyBar();
+}, 1000);
+{ const _rwP = resetWorld; resetWorld = function () { _rwP(); PARTY.on = false; PARTY.ending = false; PARTY.plan = null; for (const gu of PARTY.guests) if (gu.fig) gu.fig.g.visible = false; PARTY.guests = []; PARTY.queue = []; updatePartyBar(); }; }
 
 boot();
 
