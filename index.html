@@ -315,6 +315,9 @@ body{font-synthesis:none}
     <li>Arrastra para rotar la cámara. Rueda o pellizco para acercar. Clic derecho o <kbd>Shift</kbd> para mover.</li>
     <li><kbd>W A S D</kbd> mueve la cámara, <kbd>Q</kbd> <kbd>E</kbd> rotan, <kbd>Espacio</kbd> pausa, <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> velocidad.</li>
     <li>Trabaja en el ordenador para ganar §, y compra muebles nuevos.</li>
+    <li><b>Teléfono:</b> invita al vecino, pide comida a domicilio o pide el día libre.</li>
+    <li><b>Trabajo:</b> lun–vie de 9:00 a 17:00, tu Sim sale de casa y vuelve con el sueldo.</li>
+    <li><b>Facturas:</b> llegan al buzón cada 3 días. Toca el buzón para pagarlas; si se vencen, llevan recargo.</li>
   </ul>
   <div style="display:flex;gap:8px;justify-content:flex-end">
     <button class="btn" id="btnReset">Nuevo hogar</button>
@@ -936,14 +939,15 @@ function makeBush(x, z, s = 1, col = 0x4a9a45, flower) {
   rail((LOT.x0 + 19.8) / 2, LOT.z1, 19.8 - LOT.x0, 0);
   rail((25.2 + LOT.x1) / 2, LOT.z1, LOT.x1 - 25.2, 0);
 })();
+let mailboxFlag = null, mailboxGroup = null;
 // buzon
 (function mailbox() {
   const g = new THREE.Group();
   const post = new THREE.Mesh(new THREE.BoxGeometry(.1, 1.2, .1), M(0x5a4030, 1)); post.position.y = .6; g.add(post);
   const box = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .55, 10, 1, false, 0, Math.PI), M(0x2c5fa6, .5, .3));
   box.rotation.z = Math.PI / 2; box.rotation.y = 0; box.position.set(0, 1.3, 0); g.add(box);
-  const flag = new THREE.Mesh(new THREE.BoxGeometry(.04, .22, .02), M(0xe04a3a, .6)); flag.position.set(.2, 1.4, .0); g.add(flag);
-  g.position.set(26.4, 0, 31.4); g.castShadow = true; outside.add(g);
+  const flag = new THREE.Mesh(new THREE.BoxGeometry(.04, .22, .02), M(0xe04a3a, .6)); flag.position.set(.2, 1.4, .0); g.add(flag); mailboxFlag = flag;
+  g.position.set(26.4, 0, 31.4); g.castShadow = true; outside.add(g); mailboxGroup = g;
 })();
 // farolas
 (function lamps() {
@@ -1421,7 +1425,7 @@ def('desk', {
     if (o) o.screen = scr;
   },
   acts: [
-    { id: 'work', label: 'Trabajar', min: 240, fx: { fun: -20, energy: -14, hunger: -12 }, earn: 420, pose: 'type', spots: [{ at: [-.5, .4, Math.PI, .42], stand: [-.5, 1] }] },
+    { id: 'work', label: 'Horas extra', min: 240, fx: { fun: -20, energy: -14, hunger: -12 }, earn: 420, pose: 'type', spots: [{ at: [-.5, .4, Math.PI, .42], stand: [-.5, 1] }] },
     { id: 'game', label: 'Jugar videojuegos', min: 90, fx: { fun: 55, energy: -6 }, pose: 'type', spots: [{ at: [-.5, .4, Math.PI, .42], stand: [-.5, 1] }] },
   ],
 });
@@ -2306,6 +2310,7 @@ function pickEntity(cx, cy) {
   const ho = ray.intersectObjects(objRoot.children, true).filter(h => h.object.visible);
   if (hs.length && (!ho.length || hs[0].distance < ho[0].distance + .5)) return { sim: true };
   for (const h of ho) { let o = h.object; while (o && !o.userData.obj) o = o.parent; if (o && o.userData.obj) return { obj: o.userData.obj }; }
+  if (mailboxGroup) { const hm = ray.intersectObject(mailboxGroup, true); if (hm.length) return { mailbox: true }; }
   return null;
 }
 
@@ -2448,6 +2453,7 @@ function onClick(cx, cy) {
   const hit = pickEntity(cx, cy);
   if (hit && hit.sim) { showCtx(cx, cy, S.name, simMenu()); return; }
   if (hit && hit.obj) { showCtx(cx, cy, hit.obj.def.name, objMenu(hit.obj)); return; }
+  if (hit && hit.mailbox) { showCtx(cx, cy, 'Buzón', mailboxMenu()); return; }
   const p = groundAt(cx, cy);
   if (p) {
     const c = [Math.floor(p.x), Math.floor(p.z)];
@@ -2867,6 +2873,12 @@ const VIS = (() => {
     }
     g.position.set(V.x, groundY(V.x, V.z), V.z);
   } });
+  V.invite = () => {
+    if (V.st !== 'idle') return false;
+    V.x = 22.5; V.z = 36; g.visible = true; go([[22.5, 28.9], [22.5, 24.0]], 'in');
+    toast('¡' + REL.name + ' viene de visita!');
+    return true;
+  };
   return V;
 })();
 
@@ -3081,6 +3093,7 @@ function moodlets() {
   if (n.energy > 80) m.push(['Descansado', 1]); if (n.energy < 25) m.push(['Agotado', 0]);
   if (n.bladder < 25) m.push(['Urgencia', 0]); if (n.hygiene > 85) m.push(['Fresco', 1]); if (n.hygiene < 25) m.push(['Sucio', 0]);
   if (n.fun > 75) m.push(['Entretenido', 1]); if (n.fun < 25) m.push(['Aburrido', 0]);
+  if (BILLS.list.some(b => G.day > b.dueDay)) m.push(['Facturas vencidas', 0]);
   return m.length ? m.map(x => `<span class="mo-${x[1]}">${x[0]}</span>`).join('') : '<span>Sin cambios</span>';
 }
 { const _rs = renderSkills; renderSkills = function () {
@@ -3181,7 +3194,7 @@ setInterval(() => {
 }, 1000);
 const EVT = [
   ['Llegó una carta con un premio: +§250', () => { G.money += 250; }], ['Un vecino te regaló un pastel casero', () => { S.needs.hunger = Math.min(100, S.needs.hunger + 25); }],
-  ['Llegó la factura de la luz: −§120', () => { G.money = Math.max(0, G.money - 120); }], ['Una amiga te llamó y te alegró el día', () => { S.needs.fun = Math.min(100, S.needs.fun + 20); }],
+  ['Encontraste §50 en el bolsillo de un abrigo viejo', () => { G.money += 50; }], ['Una amiga te llamó y te alegró el día', () => { S.needs.fun = Math.min(100, S.needs.fun + 20); }],
   ['Encontraste una moneda en el sofá: +§30', () => { G.money += 30; }], ['Suena música en el vecindario', () => { S.needs.fun = Math.min(100, S.needs.fun + 10); }],
   ['El cartero dejó un paquete: +§180', () => { G.money += 180; }],
 ];
@@ -3260,7 +3273,148 @@ def('screen', { name: 'Biombo', cat: 'muros', price: 90, w: 2, d: 1, build(g) {
 def('column', { name: 'Columna', cat: 'muros', price: 60, w: 1, d: 1, part: true, build(g) { cy(g, .2, .22, WH - .3, 0xeae6da, 0, .15, 0); cy(g, .28, .28, .15, 0xd8d4c8, 0, 0, 0); cy(g, .28, .28, .15, 0xd8d4c8, 0, WH - .15, 0); } });
 setInterval(() => { for (const o of objects) { if (!o.def || !o.def.part || !o.group) continue; const t = G.wall === 'down' ? .36 : G.wall === 'up' ? 1 : (CAM.pitch > 1.05 ? 1 : .62); o.group.scale.y += (t - o.group.scale.y) * .25; } }, 80);
 document.body.insertAdjacentHTML('beforeend', '<div id="rotate"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="44" rx="5" fill="none" stroke="#fff" stroke-width="4"/><circle cx="32" cy="43" r="2.5" fill="#fff"/></svg><b>Gira tu dispositivo</b><span>Casa Dulce Casa se juega en horizontal</span></div>');
-setInterval(() => { const w = $('.who'); if (!w) return; w.style.setProperty('--skin', SKINS[LOOK.skin]); w.style.setProperty('--hair', LOOK.style === 'bald' ? SKINS[LOOK.skin] : HAIRS[LOOK.hair]); w.style.setProperty('--shirt', SHIRTS[LOOK.shirt]); }, 250);
+/* ===== Teléfono, trabajo con horario y facturas =====
+   - Teléfono (botón en el dock): invitar al vecino, pedir comida a domicilio,
+     pedir el día libre. Ver facturas pendientes en el propio panel.
+   - Trabajo: lun–vie 9:00–17:00. El Sim sale de casa (se esconde), las
+     necesidades quedan congeladas y vuelve a las 17:00 con el sueldo del día
+     (420 + paga de su nivel). El botón del PC pasa a ser "Horas extra".
+   - Facturas: llegan al buzón cada 3 días (a partir del día 4), importe según
+     el valor de los muebles. Se pagan tocando el buzón; vencidas (3 días)
+     llevan 10% de recargo por día y un moodlet de preocupación. */
+const SHIFT_START = 540, SHIFT_END = 1020; // 9:00 - 17:00
+const JOB = { atWork: false, returnAbs: 0, lastShift: 0, skipDay: 0, remindedDay: 0, needsSnap: null };
+try { Object.assign(JOB, JSON.parse(localStorage.getItem('cdcJob') || '{}')); } catch (e) { /* sin guardado */ }
+function jobSave() { try { localStorage.setItem('cdcJob', JSON.stringify(JOB)); } catch (e) { /* nada */ } }
+const jobAbs = () => (G.day - 1) * 1440 + G.min;
+const isWorkday = () => (G.day - 1) % 7 < 5;
+function stopSimNow() {
+  S.queue.length = 0; S.tween = null; S.state = 'idle'; S.item = null; S.target = null; S.act = null; S.label = ''; S.path = [];
+  sim.book.visible = false; plateGrp.visible = false; water.visible = false;
+}
+function goToWork() {
+  stopSimNow();
+  S.bubble = null;
+  JOB.needsSnap = Object.assign({}, S.needs);
+  JOB.atWork = true; JOB.lastShift = G.day; JOB.returnAbs = jobAbs() + (SHIFT_END - G.min); jobSave();
+  sim.root.visible = false; S.state = 'away'; S.label = 'En el trabajo';
+  CAM.follow = false; syncCamBtn();
+  toast('¡A trabajar! Vuelves a las 17:00'); note(523.3, .06, .5);
+  saveSoon();
+}
+function returnFromWork() {
+  const b = jobLvl(); PROG.jobs++;
+  const pay = 420 + PAY[jobLvl()];
+  G.money += pay; JOB.atWork = false; JOB.needsSnap = null; jobSave();
+  S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y;
+  sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
+  S.needs.energy = clamp(S.needs.energy - 18, 0, 100);
+  S.needs.hunger = clamp(S.needs.hunger - 15, 0, 100);
+  S.needs.fun = clamp(S.needs.fun - 8, 0, 100);
+  toast('De vuelta del trabajo  +§' + pay);
+  note(659.3, .06, .5); setTimeout(() => note(784, .06, .6), 140);
+  if (jobLvl() > b) toast('¡Ascenso! Ahora eres ' + CAREER[jobLvl()]);
+  try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ }
+  wantAct('work');
+  saveSoon();
+}
+/* ---- Facturas ---- */
+const BILLS = { list: [], lastBillDay: 0, feeDay: 0 };
+try { Object.assign(BILLS, JSON.parse(localStorage.getItem('cdcBills') || '{}')); if (!Array.isArray(BILLS.list)) BILLS.list = []; } catch (e) { BILLS.list = []; }
+function billsSave() { try { localStorage.setItem('cdcBills', JSON.stringify(BILLS)); } catch (e) { /* nada */ } }
+const billsTotal = () => BILLS.list.reduce((s, b) => s + b.amount, 0);
+const billsOverdue = () => BILLS.list.some(b => G.day > b.dueDay);
+function setMailboxFlag(up) { if (!mailboxFlag) return; mailboxFlag.position.y = up ? 1.58 : 1.4; mailboxFlag.rotation.z = up ? -0.6 : 0; }
+function billArrive() {
+  const val = objects.reduce((s, o) => s + (o.def ? o.def.price : 0), 0);
+  const amount = Math.round((60 + val * 0.02) / 5) * 5;
+  BILLS.list.push({ id: Date.now(), day: G.day, base: amount, amount, dueDay: G.day + 3 });
+  BILLS.lastBillDay = G.day; billsSave(); setMailboxFlag(true);
+  toast('Llegaron facturas al buzón: §' + amount + ' · vence en 3 días'); note(440, .06, .5);
+}
+function payBills() {
+  const total = billsTotal();
+  if (!BILLS.list.length) { toast('No tienes facturas pendientes'); return false; }
+  if (G.money < total) { toast('No tienes § suficientes para pagar §' + total, true); return false; }
+  G.money -= total; BILLS.list = []; billsSave(); setMailboxFlag(false);
+  toast('Facturas pagadas  −§' + total); note(659.3, .06, .5); saveSoon(); return true;
+}
+function mailboxMenu() {
+  if (!BILLS.list.length) return [{ label: 'Sin facturas', sub: 'Todo al día', run() { toast('No tienes facturas pendientes'); } }];
+  const total = billsTotal(), od = billsOverdue();
+  return [
+    { label: 'Pagar facturas', sub: '§' + total + (od ? ' · ¡vencidas!' : ''), run() { if (payBills()) renderPhone(); } },
+    { label: 'Ver facturas', sub: BILLS.list.length + ' pendiente(s)', run() { toast(BILLS.list.map(b => '§' + b.amount + ' · día ' + b.dueDay).join('  ')); } },
+  ];
+}
+/* ---- Teléfono ---- */
+const DELIVERY = { atAbs: 0 };
+function renderPhone() {
+  const p = $('#phone'); if (!p || p.hidden) return;
+  const jl = jobLvl(), pay = 420 + PAY[jl], total = billsTotal();
+  p.innerHTML = '<h3 style="margin:0 0 6px;font:400 22px var(--display);color:var(--navy)">Teléfono</h3>'
+    + '<div style="font-weight:800;color:#3a4f7a;margin-bottom:6px">' + CAREER[jl] + ' · §' + pay + ' por día · lun–vie 9:00–17:00' + (JOB.atWork ? ' · en el trabajo' : JOB.skipDay === G.day ? ' · hoy día libre' : '') + '</div>'
+    + '<div style="font-weight:800;color:#3a4f7a;margin-bottom:8px">Facturas: ' + (total ? '§' + total + ' pendientes — toca el buzón' : 'al día') + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:6px">'
+    + '<button class="btn" data-a="invite" style="text-align:left">Invitar a ' + REL.name + '</button>'
+    + '<button class="btn" data-a="food" style="text-align:left">Pedir comida a domicilio · §35 · ~30 min</button>'
+    + '<button class="btn" data-a="dayoff" style="text-align:left">Pedir el día libre</button>'
+    + '</div>';
+}
+function phoneAct(a) {
+  if (a === 'invite') {
+    if (JOB.atWork) { toast('Estás en el trabajo', true); return; }
+    if (!VIS.invite()) { toast('El vecino está ocupado ahora mismo', true); return; }
+    note(659.3, .06, .5); addRel(2);
+  } else if (a === 'food') {
+    if (G.money < 35) { toast('No tienes § suficientes', true); return; }
+    G.money -= 35; DELIVERY.atAbs = jobAbs() + 30; toast('Pedido hecho · llega en ~30 min'); note(523.3, .05, .4); saveSoon();
+  } else if (a === 'dayoff') {
+    if (JOB.atWork) { toast('Ya estás en el trabajo', true); return; }
+    if (!isWorkday()) { toast('Hoy es fin de semana, no trabajas'); return; }
+    if (G.min >= SHIFT_START) { toast('Ya pasó la hora de entrar', true); return; }
+    JOB.skipDay = G.day; jobSave(); toast('Día libre: hoy no irás a trabajar'); note(440, .05, .4);
+  }
+  renderPhone();
+}
+{ const p = document.createElement('div'); p.id = 'phone'; p.className = 'panel'; p.hidden = true;
+  p.style.cssText = 'width:min(340px,100%);box-sizing:border-box;padding:12px 14px;background:linear-gradient(#f9f3e0,#e8dfc2);color:#14284f;text-shadow:none';
+  $('#hud .bottom').insertBefore(p, $('#hud .bottom .dock'));
+  const b = document.createElement('button'); b.className = 'btn'; b.id = 'btnPhone'; b.textContent = 'Teléfono'; $('#btnHelp').before(b);
+  b.addEventListener('click', () => { p.hidden = !p.hidden; b.classList.toggle('on', !p.hidden); renderPhone(); });
+  p.addEventListener('click', e => { const t = e.target.closest('[data-a]'); if (!t) return; phoneAct(t.dataset.a); }); }
+/* ---- Reloj del mundo: trabajo, entrega y facturas (cada 0,5 s reales) ---- */
+setInterval(() => {
+  if (!G.started || !G.speed) return;
+  if (!JOB.atWork) {
+    if (isWorkday() && JOB.lastShift !== G.day && JOB.skipDay !== G.day) {
+      if (G.min >= 525 && G.min < SHIFT_START && JOB.remindedDay !== G.day) { JOB.remindedDay = G.day; jobSave(); toast('Hoy trabajas de 9:00 a 17:00'); }
+      if (G.min >= SHIFT_START) {
+        if (G.min >= 960) { JOB.lastShift = G.day; jobSave(); }
+        else goToWork();
+      }
+    }
+  } else {
+    if (S.state !== 'away') { sim.root.visible = false; S.state = 'away'; S.label = 'En el trabajo'; }
+    if (JOB.needsSnap) Object.assign(S.needs, JOB.needsSnap);
+    if (jobAbs() >= JOB.returnAbs) returnFromWork();
+  }
+  if (DELIVERY.atAbs && jobAbs() >= DELIVERY.atAbs) {
+    if (JOB.atWork) DELIVERY.atAbs = JOB.returnAbs;
+    else { DELIVERY.atAbs = 0; toast('¡Llegó tu pedido!'); say('¡A comer!'); note(784, .06, .6); enqueue({ kind: 'eat', label: 'Comer pedido', auto: false }); }
+  }
+  if (G.day > 1 && (G.day - 1) % 3 === 0 && G.min >= 480 && BILLS.lastBillDay !== G.day) billArrive();
+  if (BILLS.feeDay !== G.day) {
+    BILLS.feeDay = G.day; let changed = false;
+    for (const b of BILLS.list) if (G.day > b.dueDay) { b.amount += Math.max(10, Math.round(b.base * 0.1)); changed = true; }
+    if (changed) { billsSave(); toast('Recargo por facturas vencidas', true); }
+  }
+}, 500);
+/* Mientras está en el trabajo, que no piense ni actúe solo; al reiniciar el mundo, fuera trabajo y facturas */
+{ const _th = think; think = function (dt) { if (S.state === 'away') return; _th(dt); }; }
+{ const _rw = resetWorld; resetWorld = function () { _rw(); JOB.atWork = false; JOB.needsSnap = null; JOB.lastShift = 0; JOB.skipDay = 0; JOB.remindedDay = 0; BILLS.list = []; BILLS.lastBillDay = 0; BILLS.feeDay = 0; DELIVERY.atAbs = 0; setMailboxFlag(false); try { localStorage.removeItem('cdcJob'); localStorage.removeItem('cdcBills'); } catch (e) { /* nada */ } }; }
+/* Puerta de pruebas (también útil para depurar): window.CDC */
+window.CDC = { G, S, JOB, BILLS, VIS, REL, PROG, DELIVERY, payBills, goToWork, returnFromWork, billArrive, renderPhone };
 boot();
 
 
