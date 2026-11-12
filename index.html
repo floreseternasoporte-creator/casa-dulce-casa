@@ -267,7 +267,7 @@ body{font-synthesis:none}
 .clock .speeds{width:100%}.clock .sub{margin:0!important}.clock b{font-size:22px!important}
 .clock .money{width:100%;margin:3px 0 0!important;padding-top:3px!important;font-size:15px!important;text-align:right;border-top:2px solid rgba(14,40,96,.5)}
 .dock{padding:5px 7px!important;gap:6px!important}.dock .btn{padding:6px 11px;font-size:13px}
-#skills,#decor,#phone,#city{position:absolute!important;right:max(12px,env(safe-area-inset-right,0px));bottom:68px;width:min(320px,calc(100vw - 24px))!important;max-height:calc(100% - 150px)!important;overflow:auto;box-sizing:border-box;z-index:5}
+#skills,#decor,#phone,#city,#fam{position:absolute!important;right:max(12px,env(safe-area-inset-right,0px));bottom:68px;width:min(320px,calc(100vw - 24px))!important;max-height:calc(100% - 150px)!important;overflow:auto;box-sizing:border-box;z-index:5}
 #moreMenu{position:absolute;left:50%;bottom:68px;transform:translateX(-50%);display:grid;grid-template-columns:repeat(2,minmax(110px,1fr));gap:6px;padding:8px;width:min(300px,calc(100vw - 24px));box-sizing:border-box;z-index:6}
 #moreMenu[hidden]{display:none}#moreMenu .btn{text-align:center}
 
@@ -381,6 +381,7 @@ body{font-synthesis:none}
     <div class="lab">Peinado</div><div class="sws" id="styleSw" style="gap:5px"></div>
     <div class="lab">Camiseta</div><div class="sws" id="shirtSw"></div>
     <div class="lab">Pantalón</div><div class="sws" id="pantsSw"></div>
+    <div class="lab">Rasgos (elige hasta 2)</div><div id="traitSw" style="display:flex;flex-wrap:wrap;gap:5px"></div><div id="traitDesc" style="min-height:30px;margin-top:5px;font:800 12px var(--body);color:#d9e8ff"></div>
     <div style="display:flex;gap:8px;margin-top:16px"><button class="btn" id="randBtn">Aleatorio</button><button class="btn on" id="startBtn" style="flex:1;padding:11px">Listo · Empezar</button></div>
   </div>
 </div>
@@ -392,7 +393,7 @@ html,body{height:100%;height:100dvh}
 #skills,#decor,#phone{position:absolute!important;right:max(12px,env(safe-area-inset-right,0px));left:auto!important;
   bottom:calc(var(--bh,60px) + 12px)!important;top:auto!important;width:min(320px,calc(100vw - 24px))!important;
   max-height:max(140px,calc(100% - var(--th,110px) - var(--bh,60px) - 28px))!important;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;z-index:7}
-#phone .btn,#city .btn{display:flex;align-items:center;gap:8px;white-space:normal;text-align:left;line-height:1.2}
+#phone .btn,#city .btn,#fam .btn{display:flex;align-items:center;gap:8px;white-space:normal;text-align:left;line-height:1.2}
 #phone .btn svg,#phone .btn .ic{display:inline-block!important;flex:none;width:18px;height:18px;margin:0}
 .cat{display:flex;flex-direction:column;max-height:min(46dvh,calc(100dvh - var(--th,110px) - 76px))}
 .cat .items{flex:1 1 auto;min-height:0;overflow-y:hidden;padding-bottom:10px}
@@ -408,6 +409,11 @@ html,body{height:100%;height:100dvh}
 #city .row{display:flex;gap:6px;margin-bottom:8px}#city .row .btn{flex:1;justify-content:center}
 #city .pl{flex-direction:column;align-items:flex-start;gap:2px;margin-top:6px;width:100%}
 #city .pl b{font:400 15px var(--display)}#city .pl small{font-weight:800;color:#3a4f7a}#city .pl em{font-style:normal;font-size:11px;color:#b8431f;font-weight:800}
+#fam{background:linear-gradient(#f9f3e0,#e8dfc2);color:#14284f;text-shadow:none;padding:12px 14px}
+#fam h3{margin:0 0 6px;font:400 22px var(--display);color:#14284f}
+#fam .pl{flex-direction:column;align-items:flex-start;gap:2px;margin-top:6px;width:100%}
+#fam .pl b{font:400 15px var(--display)}#fam .pl small{font-weight:800;color:#3a4f7a}#fam .pl em{font-style:normal;font-size:11px;color:#2c8a2c;font-weight:800}
+#fam .add{justify-content:center;margin-top:8px;width:100%}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -2976,7 +2982,7 @@ const VIS = (() => {
     toast('¡' + REL.name + ' viene de visita!');
     return true;
   };
-  return V;
+  V.g = g; return V;
 })();
 
 /* ===== Pantalla de carga y crear-un-Sim (escenario azul, como el original) ===== */
@@ -3770,7 +3776,7 @@ if (!TRACKS[TR.id]) TR.id = 'oficina';
 const applyTrack = () => CAREER.splice(0, 5, ...TRACKS[TR.id].names);
 applyTrack();
 { const _rw2 = returnFromWork; returnFromWork = function () {
-    const m0 = G.money; _rw2(); const sk = TRACKS[TR.id].sk, bonus = sk ? Math.round((G.money - m0) * .07 * skLvl(sk)) : 0;
+    const m0 = G.money; _rw2(); const sk = TRACKS[TR.id].sk, bonus = sk ? Math.round((G.money - m0) * (HAS('artistico') ? .12 : .07) * skLvl(sk)) : 0;
     if (bonus > 0) { G.money += bonus; toast('Bono de ' + TRACKS[TR.id].n + ' por tu habilidad: +$' + bonus); } }; }
 { const _rp2 = renderPhone; renderPhone = function () { _rp2(); const p = $('#phone'); if (!p || p.hidden) return;
     p.insertAdjacentHTML('beforeend', '<div style="font:400 15px var(--display);margin:10px 0 4px;color:#14284f">Carrera</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
@@ -3782,6 +3788,11 @@ $('#phone').addEventListener('click', e => { const t = e.target.closest('[data-c
   TR.id = k; applyTrack(); PROG.jobs = 0; try { localStorage.setItem('cdcTrack', JSON.stringify(TR)); localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ }
   toast('Nueva carrera: ' + tr.n + ' (empiezas como ' + CAREER[0] + ')'); note(523.3, .06, .5); renderPhone(); });
 
+/* COM es GLOBAL y vive aquí, fuera del bloque de la Ciudad: lo usan el bucle
+   de coches, el trayecto al trabajo (comStart/comEnd) y updateSim, que viven
+   fuera de ese bloque. Si se declara dentro, queda atrapado ahí y todo lo
+   demás ve "COM is not defined" en cada cuadro. */
+const COM = { on: false, path: [], pi: 0, mode: '' };
 {
 /* ===== Ciudad: avenida con comercios, vecinos, parque, tráfico y vida nocturna ===== */
 const TOWN = new THREE.Group(); scene.add(TOWN);
@@ -3801,6 +3812,8 @@ var PLACES = {
   gal: { n: 'Galería Arte', cx: 14, w: 12, d: 10, h: 8, col: 0xd9c9e8, sg: '#6a3fa0', track: 'artista', out: { t: 'Visitar la galería', cost: 10, min: 60, fx: { fun: 30 }, xp: ['pintura', 5] } },
   aud: { n: 'Auditorio', cx: 29, w: 14, d: 12, h: 9, col: 0xc0504d, sg: '#8a1f2f', track: 'musico', out: { t: 'Ir a un concierto', cost: 20, min: 90, fx: { fun: 42, energy: -6 }, xp: ['musica', 5] } },
   gym: { n: 'Gimnasio', cx: 44, w: 12, d: 10, h: 6, col: 0x6fb7a8, sg: '#1f6a5a', out: { t: 'Hacer ejercicio', cost: 15, min: 60, fx: { fun: 15, energy: -20, hygiene: -18, hunger: -10 }, xp: ['ejercicio', 6] } },
+  tienda: { n: 'Tienda', cx: -30, w: 12, d: 10, h: 6, col: 0x8fd18a, sg: '#2d7a3a', out: { t: 'Hacer las compras', cost: 30, min: 45, fx: { hunger: 30, fun: 6 } } },
+  clinica: { n: 'Clínica', cx: 88, w: 14, d: 12, h: 10, col: 0xf2f2f2, sg: '#c0392b', out: { t: 'Chequeo médico', cost: 60, min: 60, fx: { energy: 20, hygiene: 15, hunger: 10 } } },
   park: { n: 'Parque', cx: 64, out: { t: 'Pasear por el parque', cost: 0, min: 90, fx: { fun: 35, energy: -8, hygiene: -5 } } },
 };
 function building(p) {
@@ -3830,17 +3843,19 @@ function lamp(x, z) { const g = new THREE.Group(); g.position.set(x, 0, z); cy(g
     bx(g, 1.4, 2.2, .14, 0x5a3a22, 0, 0, 3.55); for (const x of [-3, 3]) bx(g, 1.5, 1.4, .12, 0, x, 1.4, 3.55, { mat: winMat }); bx(g, 3, .08, 6, 0xd9cdb0, 0, 0, 6.4);
     g.traverse(m => { m.castShadow = false; }); TOWN.add(g); tree(cx + 6.5, 28, .9); }
 }
-const CARS = [];
+var CARS = [];
 function makeCar(col, lane, dir, x) { const g = new THREE.Group(); bx(g, 4.2, .7, 1.9, col, 0, .35, 0); bx(g, 2.2, .65, 1.7, 0xdfe9f2, -.2, 1, 0);
   for (const a of [-1.4, 1.4]) for (const b of [-.95, .95]) cy(g, .38, .38, .3, 0x1c1c22, a, .05, b, { rx: Math.PI / 2, seg: 10 });
   g.position.set(x, 0, lane); g.rotation.y = dir > 0 ? 0 : Math.PI; g.traverse(m => { m.castShadow = false; }); TOWN.add(g); CARS.push({ g, dir, v: 5 + Math.random() * 3 }); }
 [[0xe8564a, 36.4, 1, -60], [0x3a8fe0, 36.4, 1, 30], [0xf2b134, 41.6, -1, 90], [0x59b86a, 41.6, -1, -20], [0x8a5ac8, 36.4, 1, 110]].forEach(a => makeCar(...a));
+/* COM vive ARRIBA, fuera del bloque de la Ciudad (ver nota ahí). */
 { let last = performance.now(); (function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, .1); last = t; const sp = [0, 1, 2.2, 4][G.speed] || 0;
-    for (const c of CARS) { c.g.position.x += c.dir * c.v * dt * sp; if (c.g.position.x > 150) c.g.position.x = -110; if (c.g.position.x < -110) c.g.position.x = 150; } })(last); }
+    const onRoad = COM.on && S.pos.z > 33 && S.pos.z < 45 && Math.abs(S.pos.x - 22.5) < 3;
+    for (const c of CARS) { const ahead = (22.5 - c.g.position.x) * c.dir; if (onRoad && ahead > 1.5 && ahead < 9) continue; c.g.position.x += c.dir * c.v * dt * sp; if (c.g.position.x > 150) c.g.position.x = -110; if (c.g.position.x < -110) c.g.position.x = 150; } })(last); }
 setInterval(() => { const h = (G.min / 60) % 24, night = h >= 18 || h < 6; winMat.emissiveIntensity = night ? .9 : 0; lampMat.emissiveIntensity = night ? 1.3 : 0; }, 2000);
 
 /* ---- Salidas: el Sim va a un lugar de la ciudad y vuelve con los efectos ---- */
-const OUT = { on: false, until: 0, k: null };
+var OUT = { on: false, until: 0, k: null };
 function goOut(k) {
   const p = PLACES[k], o = p.out;
   if (JOB.atWork || FAINT.on || OUT.on || COM.on || S.state === 'away') { toast('Ahora no puedes salir', true); return; }
@@ -3848,12 +3863,12 @@ function goOut(k) {
   if (isWorkday() && JOB.skipDay !== G.day && G.min + o.min > SHIFT_START && G.min < SHIFT_END) { toast('No da tiempo: tienes que ir al trabajo', true); return; }
   stopSimNow(); S.bubble = null; G.money -= o.cost; OUT.on = true; OUT.k = k; OUT.until = jobAbs() + o.min;
   sim.root.visible = false; S.state = 'away'; S.label = p.n; CAM.follow = false; Object.assign(CAM.goal, { tx: p.cx, tz: 54, pitch: .8, dist: Math.max(30, Math.min(CAM.goal.dist, 48)) });
-  toast(o.t + ' · vuelve en ' + o.min + ' min'); note(523.3, .05, .4); saveSoon();
+  toast(o.t + ' · vuelve en ' + o.min + ' min'); note(523.3, .05, .4); saveSoon(); if (CAR.owned) carRoute(p.cx, false);
 }
 function outEnd() {
-  const o = PLACES[OUT.k].out; OUT.on = false;
+  const o = PLACES[OUT.k].out; OUT.on = false; if (CAR.owned) carRoute(PLACES[OUT.k].cx, true);
   for (const k in o.fx) S.needs[k] = clamp(S.needs[k] + o.fx[k], 0, 100);
-  if (o.xp) { PROG.xp[o.xp[0]] = (PROG.xp[o.xp[0]] || 0) + o.xp[1]; try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ } }
+  if (o.xp) { PROG.xp[o.xp[0]] = (PROG.xp[o.xp[0]] || 0) + o.xp[1] * (HAS('artistico') ? 2 : 1); try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ } }
   S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
   camHome(); say('¡Qué buen rato!'); toast('De vuelta en casa · ' + o.t + ' ✔'); note(659.3, .06, .5); saveSoon();
 }
@@ -3882,7 +3897,7 @@ function renderCity() {
 
 }
 /* ===== Trayecto: el Sim camina de casa al trabajo (cruzando por el paso de peatones) y regresa ===== */
-const COM = { on: false, path: [], pi: 0, mode: '' };
+/* COM ya vive arriba, antes del bucle de coches (ver nota ahí). */
 for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.6, .02, .55), M(0xf4f1e8, 1)); m.position.set(22.5, .06, 34.5 + i * 1.1); scene.add(m); }
 const workPlace = () => Object.values(PLACES).find(q => q.track === TR.id);
 function comStart(mode, p) {
@@ -3906,6 +3921,201 @@ function comEnd() {
 { const _r3 = returnFromWork; returnFromWork = function () {
     if (COM.on) { COM.on = false; return _r3(); }
     _r3(); const p = workPlace(); if (p) comStart('home', p); }; }
+
+/* ===== Vida en las calles: peatones por las aceras y nubes ===== */
+const PEDS = [], CLOUDS = [];
+[[-30, 45.4, 1, 0xe8564a], [0, 45.4, -1, 0x3a8fe0], [40, 45.4, 1, 0xf2b134], [70, 45.4, -1, 0x8a5ac8], [-10, 33, 1, 0x59b86a], [50, 33, -1, 0xe8a04a]].forEach(([x, z, dir, col]) => {
+  const g = new THREE.Group(); g.position.set(x, 0, z); cy(g, .08, .08, .5, 0x2a2e36, -.09, 0, 0); cy(g, .08, .08, .5, 0x2a2e36, .09, 0, 0);
+  cy(g, .2, .22, .7, col, 0, .45, 0); sp(g, .17, 0xf0c9a0, 0, 1.4, 0); g.traverse(m => { m.castShadow = false; }); scene.add(g); PEDS.push({ g, dir, v: 1.1 + Math.random() * .6, ph: Math.random() * 6 }); });
+for (let i = 0; i < 6; i++) { const g = new THREE.Group(); g.position.set(-120 + i * 50, 42 + (i % 3) * 6, -20 + (i * 37) % 120);
+  for (const [x, y, z, r] of [[0, 0, 0, 5], [5, -.5, 1, 4], [-5, -.6, -1, 3.6], [2, 1.5, 0, 3.4]]) { const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), M(0xffffff, 1)); m.position.set(x, y, z); m.scale.y = .6; g.add(m); }
+  scene.add(g); CLOUDS.push({ g, v: 1 + Math.random() * 1.2 }); }
+{ let last = performance.now(); (function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, .1); last = t; const sp = [0, 1, 2.2, 4][G.speed] || 0;
+    for (const p of PEDS) { p.g.position.x += p.dir * p.v * dt * sp; p.ph += dt * sp * 9; p.g.position.y = Math.abs(Math.sin(p.ph)) * .06; if (p.g.position.x > 110) p.g.position.x = -60; if (p.g.position.x < -60) p.g.position.x = 110; }
+    for (const c of CLOUDS) { c.g.position.x += c.v * dt * Math.max(.3, sp); if (c.g.position.x > 170) c.g.position.x = -170; } })(last); }
+
+/* ===== Rasgos de personalidad (elige hasta 2 al crear al Sim) ===== */
+const NEED_BASE = Object.assign({}, NEED_DECAY);
+const TRAITS = { sel: [], defs: {
+  goloso:    { n: 'Goloso',    d: 'Le da hambre antes (×1,4) y desea comer y cocinar.', dec: { hunger: 1.4 }, w: ['eat', 'cook'] },
+  dormilon:  { n: 'Dormilón',  d: 'Se cansa antes (×1,35) pero se aburre menos (×0,85).', dec: { energy: 1.35, fun: .85 }, w: ['sleep'] },
+  activo:    { n: 'Activo',    d: 'Aguanta más energía (×0,8) pero suda más (higiene ×1,25).', dec: { energy: .8, hygiene: 1.25 }, w: ['run', 'lift'] },
+  limpio:    { n: 'Limpio',    d: 'Se ensucia antes (×1,4) pero aguanta más el baño (×0,8).', dec: { hygiene: 1.4, bladder: .8 }, w: ['shower', 'clean'] },
+  sociable:  { n: 'Sociable',  d: 'Se aburre antes (×1,3) pero gana el doble de amistad.', dec: { fun: 1.3 }, w: ['tv'] },
+  artistico: { n: 'Artístico', d: 'Doble XP en salidas y más bono en carreras de arte, música y cocina.', dec: {}, w: ['paint', 'play'] },
+} };
+try { TRAITS.sel = (JSON.parse(localStorage.getItem('cdcTraits') || '[]') || []).filter(k => TRAITS.defs[k]).slice(0, 2); } catch (e) { /* sin guardado */ }
+const HAS = k => TRAITS.sel.includes(k);
+function applyTraits() {
+  for (const k in NEED_BASE) { let m = 1; TRAITS.sel.forEach(t => { m *= TRAITS.defs[t].dec[k] || 1; }); NEED_DECAY[k] = NEED_BASE[k] * m; }
+  try { localStorage.setItem('cdcTraits', JSON.stringify(TRAITS.sel)); } catch (e) { /* nada */ }
+}
+applyTraits();
+{ const _nw = newWant; newWant = function () {
+    const pool = TRAITS.sel.flatMap(t => TRAITS.defs[t].w).filter(k => WL[k] && !W.slots.includes(k));
+    return pool.length && Math.random() < .5 ? pool[Math.floor(Math.random() * pool.length)] : _nw(); }; }
+{ const _ra = addRel; addRel = function (n) { _ra(HAS('sociable') && n > 0 ? n * 2 : n); }; }
+{ const _rs3 = renderSkills; renderSkills = function () { _rs3(); const p = $('#skills'); if (!p || p.hidden || !TRAITS.sel.length) return;
+    p.insertAdjacentHTML('beforeend', '<h3 class="h2">Rasgos</h3>' + TRAITS.sel.map(k => '<div class="wt"><i></i><b>' + TRAITS.defs[k].n + '</b>&nbsp;· ' + TRAITS.defs[k].d + '</div>').join('')); }; }
+{ const box = $('#traitSw'), desc = $('#traitDesc');
+  const draw = () => { box.innerHTML = ''; Object.keys(TRAITS.defs).forEach(k => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn sm' + (HAS(k) ? ' on' : ''); b.textContent = TRAITS.defs[k].n;
+      b.addEventListener('click', () => { if (HAS(k)) TRAITS.sel = TRAITS.sel.filter(x => x !== k); else { TRAITS.sel.push(k); if (TRAITS.sel.length > 2) TRAITS.sel.shift(); }
+        applyTraits(); desc.textContent = HAS(k) ? TRAITS.defs[k].d : ''; draw(); note(523.3, .04, .25); }); box.appendChild(b); }); };
+  draw(); desc.textContent = TRAITS.sel.length ? TRAITS.sel.map(k => TRAITS.defs[k].n).join(' · ') : 'Sin rasgos: necesidades normales.'; }
+
+/* ===== Cumpleaños, edad y sucesos del barrio ===== */
+const LIFE0 = { age: 18, bd: 7, last: 0, bdDay: 0, party: 0 };
+const LIFE = Object.assign({}, LIFE0); try { Object.assign(LIFE, JSON.parse(localStorage.getItem('cdcLife') || '{}')); } catch (e) { /* sin guardado */ }
+const cycleDay = () => (G.day - 1) % 14 + 1, daysToBd = () => (LIFE.bd - cycleDay() + 14) % 14;
+const lifeSave = () => { try { localStorage.setItem('cdcLife', JSON.stringify(LIFE)); } catch (e) { /* nada */ } };
+function confetti() { for (let k = 0; k < 8; k++) emit('heart', S.pos.x + (k - 3.5) * .3, S.y + 2.2, S.pos.z, 0, .7, 0, 1.8, .3); }
+EVT.push(['Se rompió una tubería: reparación −$40', () => { G.money = Math.max(0, G.money - 40); }], ['Un ruido te despierta temprano: pierdes energía', () => { S.needs.energy = Math.max(0, S.needs.energy - 12); }]);
+setInterval(() => {
+  if (!G.started || !G.speed || JOB.atWork || OUT.on || COM.on || FAINT.on) return;
+  if (LIFE.last !== G.day && G.min >= 480 && cycleDay() === LIFE.bd) {
+    LIFE.last = G.day; LIFE.bdDay = G.day; LIFE.age++; G.money += 100; S.needs.fun = clamp(S.needs.fun + 30, 0, 100); lifeSave();
+    toast('🎂 ¡Cumpleaños de ' + S.name + '! Cumple ' + LIFE.age + ' años · regalo +$100'); confetti(); note(523.3, .06, .4); setTimeout(() => note(659.3, .06, .4), 130); setTimeout(() => note(784, .06, .7), 260); saveSoon(); return; }
+}, 1000);
+{ const _rp4 = renderPhone; renderPhone = function () { _rp4(); const p = $('#phone'); if (!p || p.hidden) return;
+    if (LIFE.bdDay === G.day && LIFE.party !== G.day) p.insertAdjacentHTML('beforeend', '<button class="btn" data-party="1" style="margin-top:8px;width:100%;justify-content:center">🎂 Fiesta de cumpleaños · $80</button>'); }; }
+$('#phone').addEventListener('click', e => { if (!e.target.closest('[data-party]')) return;
+  if (JOB.atWork || OUT.on || COM.on) { toast('Ahora no puedes organizar la fiesta', true); return; }
+  if (G.money < 80) { toast('No tienes $ suficientes', true); return; }
+  if (!VIS.invite()) { toast('El vecino está ocupado ahora mismo', true); return; }
+  G.money -= 80; LIFE.party = G.day; lifeSave(); addRel(8); S.needs.fun = 100; S.needs.hunger = clamp(S.needs.hunger + 25, 0, 100);
+  confetti(); toast('¡Fiesta! Diversión al máximo y +amistad'); note(784, .06, .6); renderPhone(); saveSoon(); });
+{ const _rs5 = renderSkills; renderSkills = function () { _rs5(); const p = $('#skills'); if (!p || p.hidden) return; const d = daysToBd();
+    p.insertAdjacentHTML('beforeend', '<h3 class="h2">Vida</h3><div class="wt"><i></i>Edad: ' + LIFE.age + ' años · ' + (d ? 'cumpleaños en ' + d + ' día(s)' : '¡hoy es tu cumpleaños!') + '</div>'); }; }
+
+/* ===== Familia: hasta 3 Sims en el hogar; cambias de uno a otro (dinero, facturas y vecino se comparten) ===== */
+const FAM = { list: [], cur: 0 };
+try { Object.assign(FAM, JSON.parse(localStorage.getItem('cdcFam') || '{}')); if (!Array.isArray(FAM.list)) FAM.list = []; } catch (e) { FAM.list = []; }
+const FNAMES = { f: ['Lucía', 'Valeria', 'Ana', 'Paula', 'Elena', 'Marta'], m: ['Mateo', 'Diego', 'Pablo', 'Nico', 'Iván', 'Leo'] };
+const JOBDEF = { atWork: false, returnAbs: 0, lastShift: 0, skipDay: 0, remindedDay: 0, needsSnap: null, miss: 0, chk: 0 };
+const famSnap = () => JSON.parse(JSON.stringify({ name: S.name, look: LOOK, needs: S.needs, pos: { x: S.pos.x, z: S.pos.z }, prog: PROG, job: JOB, tr: TR.id, traits: TRAITS.sel, w: { slots: W.slots, pts: W.pts }, t: jobAbs(), life: LIFE }));
+function famSave() { try { localStorage.setItem('cdcFam', JSON.stringify(FAM)); } catch (e) { /* nada */ } }
+function famLoad(m) {
+  S.name = m.name; Object.assign(LIFE, LIFE0, m.life || {}); Object.assign(LOOK, m.look); Object.assign(S.needs, m.needs);
+  PROG.xp = m.prog.xp || {}; PROG.jobs = m.prog.jobs || 0; Object.assign(JOB, JOBDEF, m.job);
+  TR.id = TRACKS[m.tr] ? m.tr : 'oficina'; applyTrack(); TRAITS.sel = (m.traits || []).slice(0, 2); applyTraits();
+  W.slots = (m.w.slots || []).filter(k => WL[k]); W.pts = m.w.pts || 0; while (W.slots.length < 4) { const k = newWant(); if (!k) break; W.slots.push(k); }
+  const dm = clamp(jobAbs() - (m.t || jobAbs()), 0, 600); for (const k in NEED_DECAY) S.needs[k] = clamp(S.needs[k] - NEED_DECAY[k] * dm * .5, 0, 100);
+  S.pos.x = m.pos.x; S.pos.z = m.pos.z; S.y = FLOOR_Y; S.queue.length = 0; S.state = 'idle'; S.label = ''; S.bubble = null;
+  buildSim(); setLook(); sim.root.visible = true; sim.root.rotation.z = 0;
+  try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); localStorage.setItem('cdcTrack', JSON.stringify(TR)); localStorage.setItem('cdcWants', JSON.stringify(W)); } catch (e) { /* nada */ } jobSave();
+}
+function famBusy() { return JOB.atWork || COM.on || OUT.on || FAINT.on || S.state === 'do' || S.state === 'away' || S.state === 'enter' || S.state === 'exit'; }
+function famSwitch(i) {
+  if (i === FAM.cur || !FAM.list[i]) return;
+  if (famBusy()) { toast('Espera a que ' + S.name + ' termine lo que hace', true); return; }
+  stopSimNow(); FAM.list[FAM.cur] = famSnap(); FAM.cur = i; famLoad(FAM.list[i]); famSave(); camHome();
+  toast('Ahora juegas con ' + S.name); say('¡Me toca!'); note(659.3, .05, .4); saveSoon();
+}
+function famAdd() {
+  if (FAM.list.length >= 3) { toast('La casa está llena (máximo 3 Sims)', true); return; }
+  if (famBusy()) { toast('Espera a que ' + S.name + ' termine lo que hace', true); return; }
+  stopSimNow(); FAM.list[FAM.cur] = famSnap();
+  const R = n => Math.floor(Math.random() * n), g = R(2) ? 'm' : 'f', names = FNAMES[g].filter(n => !FAM.list.some(m => m.name === n));
+  const look = { skin: R(SKINS.length), hair: R(HAIRS.length), shirt: R(SHIRTS.length), pants: R(PANTS.length), gender: g, style: 'long' }; Object.assign(LOOK, look); const st = stylesFor(); look.style = st[R(st.length)][0]; look.acc = 'none';
+  const tk = Object.keys(TRAITS.defs), m = { name: names[R(names.length)] || 'Sim', look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70 }, pos: { x: 22.5, z: 24.4 },
+    prog: { xp: {}, jobs: 0 }, job: Object.assign({}, JOBDEF, { lastShift: G.day }), tr: 'oficina', traits: [tk[R(tk.length)]], w: { slots: [], pts: 0 }, t: jobAbs(), life: { age: 18 + R(10), bd: 1 + R(14), last: 0, bdDay: 0, party: 0 } };
+  FAM.list.push(m); FAM.cur = FAM.list.length - 1; famLoad(m); famSave(); camHome();
+  toast('¡Nuevo miembro: ' + S.name + '! Rasgo: ' + TRAITS.defs[TRAITS.sel[0]].n); note(659.3, .05, .4); setTimeout(() => note(880, .05, .5), 120); saveSoon();
+}
+if (!FAM.list.length) { FAM.list = [famSnap()]; FAM.cur = 0; }
+function renderFam() {
+  const p = $('#fam'); if (!p || p.hidden) return;
+  p.innerHTML = '<h3>Familia</h3>' + FAM.list.map((m0, i) => { const cur = i === FAM.cur, m = cur ? famSnap() : m0, jl = JT.filter(t => m.prog.jobs >= t).length, tr = TRACKS[m.tr] || TRACKS.oficina;
+    return '<button class="btn pl" data-i="' + i + '"><b>' + m.name + (cur ? ' · jugando' : '') + '</b><small>' + tr.names[jl] + ' · ' + (m.traits.map(k => TRAITS.defs[k].n).join(', ') || 'sin rasgos') + '</small>' + (cur ? '<em>★ Sim activo</em>' : '') + '</button>'; }).join('')
+    + (FAM.list.length < 3 ? '<button class="btn add" data-add="1">+ Nuevo miembro</button>' : '');
+}
+{ const p = document.createElement('div'); p.id = 'fam'; p.className = 'panel'; p.hidden = true; $('#hud .bottom').insertBefore(p, $('#hud .bottom .dock'));
+  const b = document.createElement('button'); b.className = 'btn'; b.id = 'btnFam'; b.textContent = 'Familia'; ($('#moreMenu') || $('#hud')).appendChild(b);
+  const others = ['skills', 'decor', 'phone', 'city'];
+  b.addEventListener('click', () => { p.hidden = !p.hidden; b.classList.toggle('on', !p.hidden);
+    if (!p.hidden) { others.forEach(id => { const o = $('#' + id); if (o) o.hidden = true; }); renderFam(); }
+    const m = $('#moreMenu'); if (m) { m.hidden = true; const mb = $('#btnMore'); if (mb) mb.classList.remove('on'); } });
+  others.forEach(id => { const ob = $('#btn' + id[0].toUpperCase() + id.slice(1)); if (ob) ob.addEventListener('click', () => { p.hidden = true; b.classList.remove('on'); }, true); });
+  p.addEventListener('click', e => { const t = e.target.closest('[data-i],[data-add]'); if (!t) return; if (t.dataset.add) famAdd(); else famSwitch(+t.dataset.i); renderFam(); });
+  setInterval(renderFam, 2500); }
+
+/* ===== Coche propio: se compra por teléfono y el Sim conduce al trabajo (mucho más rápido que a pie) ===== */
+const CAR = { owned: false }; try { CAR.owned = localStorage.getItem('cdcCar') === '1'; } catch (e) { /* sin guardado */ }
+const carMesh = new THREE.Group();
+bx(carMesh, 4.2, .7, 1.9, 0x2f6fd6, 0, .35, 0); bx(carMesh, 2.2, .65, 1.7, 0xdfe9f2, -.2, 1, 0); bx(carMesh, .12, .3, 1.5, 0xfff1b8, 2.1, .55, 0, { mat: glowMat(0xfff1b8, .5) });
+for (const a of [-1.4, 1.4]) for (const b of [-.95, .95]) cy(carMesh, .38, .38, .3, 0x1c1c22, a, .05, b, { rx: Math.PI / 2, seg: 10 });
+carMesh.traverse(m => { m.castShadow = false; }); scene.add(carMesh); carMesh.visible = CAR.owned;
+const carPark = () => { carMesh.position.set(30, 0, 30.4); carMesh.rotation.y = -Math.PI / 2; };
+carPark();
+{ const _cs = comStart; comStart = function (mode, p) {
+    _cs(mode, p); CM.on = false; COM.drive = false; if (!CAR.owned) return;
+    const L = p.cx > 30 ? 36.4 : 41.6, r = [[30, 30.4], [30, L], [p.cx, L], [p.cx, 46]]; COM.pts = mode === 'work' ? r : r.slice().reverse(); COM.pi = 1; COM.drive = true;
+    carMesh.position.set(COM.pts[0][0], 0, COM.pts[0][1]); sim.root.visible = false; S.label = mode === 'work' ? 'Conduciendo al trabajo' : 'Conduciendo a casa'; }; }
+function driveStep(dt) {
+  const sp = [0, 1, 2.2, 4][G.speed] || 0; sim.root.visible = false; if (!sp) return;
+  const t = COM.pts[COM.pi]; if (!t) { COM.drive = false; return comEnd(); }
+  const dx = t[0] - carMesh.position.x, dz = t[1] - carMesh.position.z, d = Math.hypot(dx, dz), st = 9 * dt * sp;
+  if (d > .05) { const a = Math.atan2(-dz, dx); let da = a - carMesh.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); carMesh.rotation.y += da * Math.min(1, dt * 10); }
+  if (d <= st) { carMesh.position.x = t[0]; carMesh.position.z = t[1]; COM.pi++; if (COM.pi >= COM.pts.length) { COM.drive = false; const home = COM.mode === 'home'; comEnd(); if (home) carPark(); } }
+  else { carMesh.position.x += dx / d * st; carMesh.position.z += dz / d * st; }
+  S.pos.x = carMesh.position.x; S.pos.z = carMesh.position.z;
+}
+{ const _us2 = updateSim; updateSim = function (dt) { if (COM.on && COM.drive) return driveStep(dt); _us2(dt); }; }
+{ const _rp5 = renderPhone; renderPhone = function () { _rp5(); const p = $('#phone'); if (!p || p.hidden) return;
+    p.insertAdjacentHTML('beforeend', CAR.owned ? '<div style="margin-top:8px;font-weight:800;color:#2c8a2c">🚗 Coche propio: viajes rápidos al trabajo</div>'
+      : '<button class="btn" data-car="1" style="margin-top:8px;width:100%;justify-content:center">🚗 Comprar coche · $1.800</button>'); }; }
+$('#phone').addEventListener('click', e => { if (!e.target.closest('[data-car]')) return;
+  if (G.money < 1800) { toast('Necesitas $1.800 para el coche', true); return; }
+  G.money -= 1800; CAR.owned = true; carMesh.visible = true; carPark(); try { localStorage.setItem('cdcCar', '1'); } catch (e2) { /* nada */ }
+  toast('🚗 ¡Coche nuevo! Estacionado frente a la casa'); note(523.3, .06, .4); setTimeout(() => note(784, .06, .6), 140); renderPhone(); saveSoon(); });
+
+/* ===== El coche también lleva al Sim a los lugares de la ciudad (ida y vuelta) ===== */
+const CM = { on: false, pts: [], pi: 1, back: false };
+function carRoute(cx, back) {
+  const L = cx > 30 ? 36.4 : 41.6, r = [[30, 30.4], [30, L], [cx, L], [cx, 46]];
+  CM.pts = back ? r.slice().reverse() : r; CM.pi = 1; CM.back = back; CM.on = true; carMesh.position.set(CM.pts[0][0], 0, CM.pts[0][1]);
+}
+{ let last = performance.now(); (function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, .1); last = t;
+    const sp = [0, 1, 2.2, 4][G.speed] || 0; if (!CM.on || COM.drive || !sp) return;
+    const q = CM.pts[CM.pi]; if (!q) { CM.on = false; if (CM.back) carPark(); return; }
+    const dx = q[0] - carMesh.position.x, dz = q[1] - carMesh.position.z, d = Math.hypot(dx, dz), st = 9 * dt * sp;
+    if (d > .05) { let da = Math.atan2(-dz, dx) - carMesh.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); carMesh.rotation.y += da * Math.min(1, dt * 10); }
+    if (d <= st) { carMesh.position.x = q[0]; carMesh.position.z = q[1]; CM.pi++; if (CM.pi >= CM.pts.length) { CM.on = false; if (CM.back) carPark(); } }
+    else { carMesh.position.x += dx / d * st; carMesh.position.z += dz / d * st; } })(last); }
+
+/* ===== Vecindario: 4 vecinos con casa, aspecto y amistad propios ===== */
+const NEIGH0 = [
+  { name: 'Lucas', hx: -14, shirt: 0x3a8fe0, skin: 0xe8b48a, hair: 0x3a2418, pts: 0 }, { name: 'Camila', hx: -30, shirt: 0xe8564a, skin: 0xf0c9a0, hair: 0x6b4226, pts: 0 },
+  { name: 'Diego', hx: 52, shirt: 0x43b86a, skin: 0xa66a45, hair: 0x1c1c22, pts: 0 }, { name: 'Sofía', hx: 70, shirt: 0x9b6be0, skin: 0xe8b48a, hair: 0xc9a14a, pts: 0 },
+];
+const NG = { list: NEIGH0.map(n => Object.assign({}, n)), cur: 0, invited: false };
+try { const sv = JSON.parse(localStorage.getItem('cdcNeigh') || 'null'); if (sv && sv.list && sv.list.length === 4) { NG.list.forEach((n, i) => { n.pts = sv.list[i].pts || 0; }); NG.cur = sv.cur || 0; } } catch (e) { /* sin guardado */ }
+{ const i = NG.list.findIndex(n => n.name === REL.name); if (i >= 0) NG.cur = i; else { REL.name = NG.list[NG.cur].name; }
+  NG.list[NG.cur].pts = Math.max(NG.list[NG.cur].pts, REL.pts || 0); }
+const ngSave = () => { NG.list[NG.cur].pts = REL.pts; try { localStorage.setItem('cdcNeigh', JSON.stringify({ list: NG.list.map(n => ({ pts: n.pts })), cur: NG.cur })); localStorage.setItem('cdcRel', JSON.stringify(REL)); } catch (e) { /* nada */ } };
+function ngLook(n) {
+  const g = VIS.g, c = g.userData.cur || (g.userData.cur = { shirt: g.children[0].material.color.getHex(), skin: 0xe8b48a, hair: 0x3a2418 });
+  g.traverse(o => { if (!o.isMesh) return; const h = o.material.color.getHex(); for (const k of ['shirt', 'skin', 'hair']) if (h === c[k]) { o.material = M(n[k], .8); break; } });
+  g.userData.cur = { shirt: n.shirt, skin: n.skin, hair: n.hair };
+}
+function ngPick(i) { if (i === NG.cur || VIS.st !== 'idle' && i !== NG.cur) { if (i === NG.cur) return; } NG.list[NG.cur].pts = REL.pts; NG.cur = i; REL.name = NG.list[i].name; REL.pts = NG.list[i].pts; ngLook(NG.list[i]); ngSave(); }
+ngLook(NG.list[NG.cur]);
+{ let prev = 'idle'; setInterval(() => { // visitas espontáneas: llega un vecino al azar
+    if (prev === 'idle' && VIS.st !== 'idle' && !NG.invited) ngPick(Math.floor(Math.random() * 4)); if (VIS.st === 'idle') NG.invited = false; prev = VIS.st; }, 250); }
+setInterval(() => { if (G.started) ngSave(); }, 4000);
+for (const n of NG.list) { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(20,40,96,.88)'; x.beginPath(); x.roundRect ? x.roundRect(4, 4, 248, 56, 16) : x.rect(4, 4, 248, 56); x.fill(); x.fillStyle = '#fff'; x.font = '34px "Lilita One","Trebuchet MS",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n.name, 128, 34);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, fog: false })); sp.scale.set(4, 1, 1); sp.position.set(n.hx, 8.2, 22); scene.add(sp); }
+{ const _rp6 = renderPhone; renderPhone = function () { _rp6(); const p = $('#phone'); if (!p || p.hidden) return;
+    const old = p.querySelector('[data-a="invite"]'); if (!old) return;
+    old.insertAdjacentHTML('beforebegin', NG.list.map((n, i) => { const pts = i === NG.cur ? REL.pts : n.pts, l = RT.filter(t => pts >= t).length;
+      return '<button class="btn" data-nb="' + i + '" style="text-align:left">Invitar a ' + n.name + ' · ' + RLN[l] + '</button>'; }).join('')); old.remove(); }; }
+$('#phone').addEventListener('click', e => { const t = e.target.closest('[data-nb]'); if (!t) return;
+  if (VIS.st !== 'idle') { toast('Ya hay alguien de visita', true); return; }
+  NG.invited = true; ngPick(+t.dataset.nb); phoneAct('invite'); if (VIS.st === 'idle') NG.invited = false; });
+{ const _rs6 = renderSkills; renderSkills = function () { _rs6(); const p = $('#skills'); if (!p || p.hidden) return;
+    p.insertAdjacentHTML('beforeend', '<h3 class="h2">Vecindario</h3>' + NG.list.map((n, i) => { const pts = i === NG.cur ? REL.pts : n.pts, l = RT.filter(t => pts >= t).length;
+      return '<div class="wt"><i></i><b>' + n.name + '</b>&nbsp;· ' + RLN[l] + '</div>'; }).join('')); }; }
 
 boot();
 
