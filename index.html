@@ -2279,18 +2279,6 @@ function arrive() {
   S.tween = { t: 0, dur: Math.hypot(dx, dz) < .15 ? .05 : .55, from: { x: S.pos.x, z: S.pos.z, face: S.face }, to: { x: tg.w.at.x, z: tg.w.at.z, face: tg.w.face } };
   S.state = 'enter'; S.atY = tg.w.y;
 }
-function doTick(dt, gm) {
-  const a = S.act, n = S.needs;
-  const fx = a.fx || {};
-  for (const k in NEED_DECAY) {
-    if (k in fx) n[k] = clamp(n[k] + fx[k] / a.min * gm, 0, 100);
-    else n[k] = clamp(n[k] - NEED_DECAY[k] * gm * (a.id === 'sleep' ? .3 : 1), 0, 100);
-  }
-  if (a.earn) G.money += a.earn / a.min * gm;
-  S.rem -= gm;
-  if (a.min >= 30 && !a.earn) { const pos = Object.keys(fx).filter(k => fx[k] > 0); if (pos.length && pos.every(k => n[k] >= 99.5)) S.rem = 0; }
-  if (S.rem <= 0) finishDo();
-}
 function think(dt) {
   S.thoughtT = (S.thoughtT || 6) - dt;
   const n = S.needs;
@@ -3047,7 +3035,7 @@ const VIS = (() => {
     if (!G.started || !SPEED_F[G.speed]) return;
     const f = SPEED_F[G.speed] * dt, h = (G.min / 60) % 24;
     if (V.st === 'idle') {
-      if (abs() >= V.next && h >= 10 && h < 20 && !PARTY.on && !S.queue.some(q => q.kind === 'walk' && q.auto === false && false)) {
+      if (abs() >= V.next && h >= 10 && h < 20 && !PARTY.on && !JOB.atWork && !OUT.on && !COM.on && !FAINT.on && !NV.on) {
         V.x = 22.5; V.z = 36; g.visible = true; go([[22.5, 28.9], [22.5, 24.0]], 'in');
         toast('¡Alguien llama a la puerta!'); note(659.3, .07, .7); setTimeout(() => note(523.3, .07, .9), 380);
       }
