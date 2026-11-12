@@ -5031,6 +5031,7 @@ $('#phone').addEventListener('click', e => { const t = e.target.closest('[data-p
 function partyGuards() {
   if (PARTY.on) { toast('Ya hay una fiesta en marcha', true); return false; }
   if (JOB.atWork || OUT.on || COM.on || FAINT.on) { toast('Ahora no puedes organizar la fiesta', true); return false; }
+  if (NV.on) { toast('Estás de visita, vuelve a casa primero', true); return false; }
   if (VIS.st !== 'idle') { toast('Espera a que se vaya tu visita', true); return false; }
   return true;
 }
@@ -5174,6 +5175,150 @@ setInterval(() => {
   updatePartyBar();
 }, 1000);
 { const _rwP = resetWorld; resetWorld = function () { _rwP(); PARTY.on = false; PARTY.ending = false; PARTY.plan = null; for (const gu of PARTY.guests) if (gu.fig) gu.fig.g.visible = false; PARTY.guests = []; PARTY.queue = []; updatePartyBar(); }; }
+
+/* ===== Rocky el perro de Lucas + los vecinos te invitan a su casa (ronda 3) ===== */
+function makeDog() {
+  const g = new THREE.Group(), fur = M(0x8a5a2e, .9), cream = M(0xf3e2c2, .9), dk = M(0x241610, .5);
+  const body = new THREE.Mesh(rboxGeo(.3, .32, .62, .12), fur); body.position.y = .42; shadowize(body); g.add(body);
+  const head = new THREE.Group(); head.position.set(0, .62, .36); g.add(head);
+  head.add(shadowize(new THREE.Mesh(new THREE.SphereGeometry(.17, 14, 12), fur)));
+  for (const s of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.BoxGeometry(.07, .22, .12), M(0x5f3a1a, .9)); ear.position.set(s * .15, .02, 0); ear.rotation.z = -s * .25; head.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(.025, 8, 6), dk); eye.position.set(s * .07, .04, .15); head.add(eye);
+  }
+  const snout = new THREE.Mesh(rboxGeo(.14, .1, .16, .05), cream); snout.position.set(0, -.05, .16); head.add(snout);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(.03, 6, 5), dk); nose.position.set(0, -.02, .25); head.add(nose);
+  const tail = new THREE.Group(); tail.position.set(0, .5, -.32); g.add(tail);
+  const tm = new THREE.Mesh(new THREE.CylinderGeometry(.035, .045, .34, 8), fur); tm.position.y = .17; tail.add(tm); tail.rotation.x = -.7;
+  const legs = [[-.11, .22], [.11, .22], [-.11, -.22], [.11, -.22]].map(([x, z]) => {
+    const p = new THREE.Group(); p.position.set(x, .28, z);
+    const l = new THREE.Mesh(new THREE.CylinderGeometry(.045, .04, .28, 8), cream); l.position.y = -.14; shadowize(l); p.add(l); g.add(p); return p;
+  });
+  g.userData.pet = true; world.add(g);
+  return { g, head, tail, legs };
+}
+const ROCKY = (() => {
+  const fig = makeDog(), g = fig.g;
+  const R = { g, fig, x: -14, z: 30, path: [], pi: 0, wait: 2, sleep: 0, ph: 0, zt: 0, want: false, hold: 0, home: [-14, 30], following: false };
+  g.position.set(R.x, 0, R.z);
+  function pickNext() {
+    const h = (G.min / 60) % 24, night = h >= 22 || h < 7;
+    if (night) {
+      if (Math.hypot(R.x - R.home[0], R.z - R.home[1]) > 1) { R.path = [[R.home[0], R.home[1]]]; R.pi = 0; R.wait = 2; }
+      else R.sleep = 8 + Math.random() * 10;
+      return;
+    }
+    const r = Math.random();
+    if (r < .7) R.path = [[-32 + Math.random() * 104, 30 + Math.random() * 6]];
+    else R.path = [[R.home[0] + (Math.random() - .5) * 6, R.home[1] + (Math.random() - .5) * 4]];
+    R.pi = 0; R.wait = 2 + Math.random() * 5;
+  }
+  dyn.push({ update(dt, t) {
+    if (!G.started || !SPEED_F[G.speed]) return;
+    const f = SPEED_F[G.speed] * dt;
+    fig.tail.rotation.z = Math.sin(t * 9) * .5;
+    const lucasVisiting = NG.cur === 0 && (VIS.st === 'in' || VIS.st === 'chat');
+    if (lucasVisiting && !R.following) { R.following = true; R.sleep = 0; R.path = [[24, 31]]; R.pi = 0; }
+    if (!lucasVisiting && R.following) { R.following = false; R.path = [[R.home[0], R.home[1]]]; R.pi = 0; }
+    if (R.want && Math.hypot(S.pos.x - R.x, S.pos.z - R.z) < 1.7) {
+      R.want = false; R.hold = 0; S.needs.fun = Math.min(100, S.needs.fun + 20); S.needs.social = Math.min(100, S.needs.social + 10);
+      NG.list[0].pts = (NG.list[0].pts || 0) + 2; if (NG.cur === 0) REL.pts = NG.list[0].pts; ngSave();
+      say('¡Rocky te quiere!', 3);
+      for (let i = 0; i < 3; i++) emit('heart', R.x + (i - 1) * .25, 1.2 + i * .2, R.z, 0, .5, 0, 1.6, .3);
+    }
+    if (R.hold > 0) { R.hold -= f; if (R.hold <= 0) R.want = false; }
+    if (R.sleep > 0 && !R.want) {
+      R.sleep -= f; g.scale.y = .7; fig.head.rotation.x = .5; R.zt -= dt;
+      if (R.zt <= 0) { R.zt = 1.6; emit('z', R.x, 1, R.z, .1, .3, 0, 2.2, .26); }
+    } else {
+      g.scale.y = 1; fig.head.rotation.x = 0; R.sleep = 0;
+      if (R.pi < R.path.length) {
+        const w = R.path[R.pi], dx = w[0] - R.x, dz = w[1] - R.z, d = Math.hypot(dx, dz), st = 2.2 * f;
+        g.rotation.y = angLerp(g.rotation.y, Math.atan2(dx, dz), clamp(dt * 10, 0, 1));
+        if (d <= st) { R.x = w[0]; R.z = w[1]; R.pi++; } else { R.x += dx / d * st; R.z += dz / d * st; }
+        R.ph += f * 11;
+        fig.legs.forEach((l, i) => l.rotation.x = Math.sin(R.ph + (i % 3 ? Math.PI : 0)) * .6);
+      } else { fig.legs.forEach(l => l.rotation.x = 0); if (!R.want && !R.following) { R.wait -= f; if (R.wait <= 0) pickNext(); } }
+    }
+    g.position.set(R.x, groundY(R.x, R.z), R.z);
+  } });
+  return R;
+})();
+{
+  const _ocR = onClick;
+  onClick = function (cx, cy) {
+    if (G.started && G.mode === 'live') {
+      setRay(cx, cy);
+      if (ray.intersectObject(ROCKY.g, true).length) {
+        showCtx(cx, cy, 'Rocky 🐕', [{ label: 'Acariciar', sub: '+ diversión', run() {
+          ROCKY.want = true; ROCKY.hold = 25; ROCKY.sleep = 0; ROCKY.path = [];
+          enqueue({ kind: 'walk', cell: [Math.floor(ROCKY.x), Math.floor(ROCKY.z)], label: 'Ir con Rocky', auto: false });
+        } }, { label: 'Llamar', sub: '', run() { ROCKY.sleep = 0; ROCKY.path = [[Math.floor(S.pos.x), Math.floor(S.pos.z)]]; ROCKY.pi = 0; } }]);
+        return;
+      }
+    }
+    _ocR(cx, cy);
+  };
+}
+/* --- Los vecinos te invitan a su casa: el Sim va andando, pasa un rato charlando y vuelve --- */
+const NV = { on: false, phase: '', i: 0, hx: 0, until: 0, next: 0, fig: null };
+const VISIT_ACT = { id: 'visit', label: 'De visita', pose: 'idle', min: 45, fx: { fun: 12, social: 18 } };
+function startNeighborVisit(i) {
+  if (NV.on || PARTY.on || JOB.atWork || OUT.on || COM.on || FAINT.on || VIS.st !== 'idle') return false;
+  if (S.state !== 'idle' && S.state !== 'walk') return false;
+  const n = NG.list[i]; NV.on = true; NV.phase = 'go'; NV.i = i; NV.hx = n.hx;
+  NV.fig = getGuestFigure(i); NV.fig.g.visible = true; NV.fig.g.position.set(n.hx, groundY(n.hx, 27), 27);
+  toast('¡' + n.name + ' te invita a su casa! 🏠');
+  CAM.follow = true; syncCamBtn();
+  S.queue = S.queue.filter(q => !q.auto);
+  S.item = { kind: 'walk', cell: [n.hx, 29], label: 'Ir a casa de ' + n.name }; S.queue.unshift(S.item);
+  S.path = [[22, 29], [22, 36], [n.hx, 36], [n.hx, 29]]; S.pi = 0; S.state = 'walk'; S.label = 'Ir a casa de ' + n.name;
+  return true;
+}
+function endVisit(how) {
+  const n = NG.list[NV.i];
+  n.pts = (n.pts || 0) + 6; if (NV.i === NG.cur) REL.pts = n.pts; ngSave();
+  if (NV.fig) NV.fig.g.visible = false; NV.fig = null;
+  NV.on = false; NV.phase = ''; NV.next = jobAbs() + 1440 + Math.random() * 1440;
+  S.label = '';
+  if (how === 'done') toast('Qué bien lo pasaste en casa de ' + n.name + ' 🏠');
+}
+dyn.push({ update(dt, t) {
+  if (!G.started || !SPEED_F[G.speed] || !NV.on) return;
+  if (JOB.atWork || FAINT.on || PARTY.on) { endVisit('abort'); return; }
+  if (NV.phase === 'go') {
+    const near = Math.hypot(S.pos.x - (NV.hx + .5), S.pos.z - 29.5) < 2;
+    if (S.state === 'idle' || near) {
+      const wi = S.item; S.queue = S.queue.filter(q => q !== wi && !q.auto);
+      S.item = { kind: 'visit', label: 'De visita en casa de ' + NG.list[NV.i].name }; S.queue.unshift(S.item);
+      S.act = VISIT_ACT; S.target = { pose: 'idle', w: null };
+      beginDo();
+      NV.phase = 'atHouse';
+      say('¡Qué bonita tu casa!', 3);
+    }
+  } else if (NV.phase === 'atHouse') {
+    const fg = NV.fig.g;
+    fg.rotation.y = Math.atan2(S.pos.x - fg.position.x, S.pos.z - fg.position.z);
+    fg.position.y = groundY(fg.position.x, fg.position.z) + Math.sin(t * 3) * .05;
+    S.face = angLerp(S.face, Math.atan2(fg.position.x - S.pos.x, fg.position.z - S.pos.z), .08);
+    if (S.state === 'idle') {
+      NV.phase = 'return';
+      S.item = { kind: 'walk', cell: [22, 24], label: 'Volver a casa' }; S.queue.unshift(S.item);
+      S.path = [[NV.hx, 36], [22, 36], [22, 29], [22, 24]]; S.pi = 0; S.state = 'walk'; S.label = 'Volver a casa';
+    } else if (S.state !== 'do') { endVisit('left'); }
+  } else if (NV.phase === 'return') {
+    if (S.state === 'idle') endVisit('done');
+  }
+} });
+setInterval(() => {
+  if (!G.started || !G.speed || NV.on || PARTY.on) return;
+  if (jobAbs() < NV.next) return;
+  if (JOB.atWork || OUT.on || COM.on || FAINT.on || VIS.st !== 'idle') return;
+  if (S.state !== 'idle' && S.state !== 'walk') return;
+  startNeighborVisit(Math.floor(Math.random() * NG.list.length));
+}, 1000);
+NV.next = jobAbs() + 400 + Math.random() * 800;
+{ const _rwN = resetWorld; resetWorld = function () { _rwN(); if (NV.fig) NV.fig.g.visible = false; NV.fig = null; NV.on = false; NV.phase = ''; NV.next = jobAbs() + 400 + Math.random() * 800; }; }
 
 boot();
 
