@@ -308,6 +308,10 @@ body{font-synthesis:none}
           <button class="btn sm" data-speed="2" aria-label="Velocidad 2"><svg viewBox="0 0 14 14"><polygon points="1,2 7,7 1,12"/><polygon points="7,2 13,7 7,12"/></svg></button>
           <button class="btn sm" data-speed="3" aria-label="Velocidad 3"><svg viewBox="0 0 14 14"><polygon points="0,3 4.5,7 0,11"/><polygon points="4.5,3 9,7 4.5,11"/><polygon points="9,3 13.5,7 9,11"/></svg></button>
         </div>
+        <div class="speeds" id="zooms">
+          <button class="btn sm" data-zoom="out" aria-label="Alejar">−</button>
+          <button class="btn sm" data-zoom="in" aria-label="Acercar">+</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1181,11 +1185,15 @@ function makeCar(col) {
   P(rboxGeo(.2, .2, 1.74, .08), chrome, 2.16, .42, 0); P(rboxGeo(.2, .2, 1.74, .08), chrome, -2.16, .42, 0); P(new THREE.BoxGeometry(.04, .17, .9), dark, 2.16, .72, 0);
   for (const z of [-.62, .62]) { P(new THREE.SphereGeometry(.14, 12, 8), M(0xfff6d0, .15, 0, { emissive: 0xffe9a0, emissiveIntensity: .5 }), 2.12, .82, z).scale.set(.4, .8, 1.4); P(new THREE.BoxGeometry(.05, .14, .34), M(0xd8352a, .3, 0, { emissive: 0xff2a1a, emissiveIntensity: .4 }), -2.14, .82, z); }
   P(new THREE.BoxGeometry(.03, .14, .4), M(0xf5f5f0, .6), -2.17, .55, 0);
+  const wheels = [];
   for (const [x, z] of [[1.35, .86], [1.35, -.86], [-1.3, .86], [-1.3, -.86]]) {
-    P(new THREE.CylinderGeometry(.38, .38, .26, 20), M(0x15171b, .9), x, .38, z, Math.PI / 2); P(new THREE.CylinderGeometry(.43, .43, .03, 20), dark, x, .38, z * 1.0, Math.PI / 2);
-    P(new THREE.CylinderGeometry(.23, .23, .28, 16), chrome, x, .38, z, Math.PI / 2); P(new THREE.CylinderGeometry(.07, .07, .3, 10), dark, x, .38, z, Math.PI / 2);
-    for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; P(new THREE.BoxGeometry(.04, .2, .02), dark, x + Math.cos(a) * .12, .38 + Math.sin(a) * .12, z + (z > 0 ? .14 : -.14), 0, 0, a + Math.PI / 2); }
+    const wg = new THREE.Group(); wg.position.set(x, .38, z); g.add(wg); wheels.push(wg);
+    const WP = (geo, m, px, py, pz, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.rotation.set(rx, ry, rz); o.castShadow = true; o.receiveShadow = true; wg.add(o); return o; };
+    WP(new THREE.CylinderGeometry(.38, .38, .26, 20), M(0x15171b, .9), 0, 0, 0, Math.PI / 2); WP(new THREE.CylinderGeometry(.43, .43, .03, 20), dark, 0, 0, 0, Math.PI / 2);
+    WP(new THREE.CylinderGeometry(.23, .23, .28, 16), chrome, 0, 0, 0, Math.PI / 2); WP(new THREE.CylinderGeometry(.07, .07, .3, 10), dark, 0, 0, 0, Math.PI / 2);
+    for (let k = 0; k < 5; k++) { const a = k / 5 * TAU; WP(new THREE.BoxGeometry(.04, .2, .02), dark, Math.cos(a) * .12, Math.sin(a) * .12, z > 0 ? .14 : -.14, 0, 0, a + Math.PI / 2); }
   }
+  g.userData.wheels = wheels;
   return g;
 }
 function makeCarOld(col) {
@@ -2596,7 +2604,7 @@ canvas.addEventListener('pointermove', e => {
     let da = ang - drag.ang; if (da > Math.PI) da -= TAU; if (da < -Math.PI) da += TAU; drag.ang = ang; drag.rs += da;
     if (!drag.lock) {
       const sz = Math.abs(d - drag.d0), sr = Math.abs(drag.rs) * drag.d0 / 2, st = Math.abs(my - drag.my0) * (sz < 30 ? 1 : .4), m = Math.max(sz, sr, st);
-      if (m < 14) return;
+      if (m < 8) return;
       drag.lock = m === sz ? 'zoom' : m === sr ? 'rot' : 'tilt'; drag.d = d; drag.my = my; return;
     }
     if (drag.lock === 'zoom') { zoomAt(drag.d / Math.max(10, d), mx, my); drag.d = d; }
@@ -2733,6 +2741,7 @@ function setSpeed(s) {
 }
 function syncCamBtn() { $('#btnCam').classList.toggle('on', CAM.follow); $('#btnCam').textContent = CAM.follow ? 'Siguiendo' : 'Cámara'; }
 $$('#speeds .btn').forEach(b => b.addEventListener('click', () => setSpeed(+b.dataset.speed)));
+$$('#zooms .btn').forEach(b => b.addEventListener('click', () => zoomAt(b.dataset.zoom === 'in' ? .8 : 1.25, innerWidth / 2, innerHeight / 2)));
 $('#btnCam').addEventListener('click', () => { CAM.follow = !CAM.follow; if (!CAM.follow) camHome(); syncCamBtn(); });
 $('#btnAuto').addEventListener('click', e => { G.auto = !G.auto; e.currentTarget.classList.toggle('on', G.auto); toast(G.auto ? 'Libre albedrío activado' : 'Libre albedrío desactivado'); });
 $('#btnRoof').addEventListener('click', e => { G.roof = !G.roof; roofGroup.visible = G.roof; e.currentTarget.classList.toggle('on', G.roof); });
@@ -3942,13 +3951,12 @@ function lamp(x, z) { const g = new THREE.Group(); g.position.set(x, 0, z); cy(g
     g.traverse(m => { m.castShadow = false; }); TOWN.add(g); tree(cx + 6.5, 28, .9); }
 }
 var CARS = [];
-function makeCar(col, lane, dir, x) { const g = new THREE.Group(); bx(g, 4.2, .7, 1.9, col, 0, .35, 0); bx(g, 2.2, .65, 1.7, 0xdfe9f2, -.2, 1, 0);
-  for (const a of [-1.4, 1.4]) for (const b of [-.95, .95]) cy(g, .38, .38, .3, 0x1c1c22, a, .05, b, { rx: Math.PI / 2, seg: 10 });
+function makeTrafficCar(col, lane, dir, x) { const g = makeCar(col);
   g.position.set(x, 0, lane); g.rotation.y = dir > 0 ? 0 : Math.PI; g.traverse(m => { m.castShadow = false; }); TOWN.add(g); CARS.push({ g, dir, v: 5 + Math.random() * 3 }); }
-[[0xe8564a, 36.4, 1, -60], [0x3a8fe0, 36.4, 1, 30], [0xf2b134, 41.6, -1, 90], [0x59b86a, 41.6, -1, -20], [0x8a5ac8, 36.4, 1, 110]].forEach(a => makeCar(...a));
+[[0xe8564a, 36.4, 1, -60], [0x3a8fe0, 36.4, 1, 30], [0xf2b134, 41.6, -1, 90], [0x59b86a, 41.6, -1, -20], [0x8a5ac8, 36.4, 1, 110]].forEach(a => makeTrafficCar(...a));
 { let last = performance.now(); const loop = function (t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, .1); last = t; const sp = [0, 1, 2.2, 4][G.speed] || 0;
     const onRoad = COM.on && S.pos.z > 33 && S.pos.z < 45 && Math.abs(S.pos.x - 22.5) < 3;
-    for (const c of CARS) { const ahead = (22.5 - c.g.position.x) * c.dir; if (onRoad && ahead > 1.5 && ahead < 9) continue; c.g.position.x += c.dir * c.v * dt * sp; if (c.g.position.x > 150) c.g.position.x = -110; if (c.g.position.x < -110) c.g.position.x = 150; } }; requestAnimationFrame(loop); }
+    for (const c of CARS) { const ahead = (22.5 - c.g.position.x) * c.dir; if (onRoad && ahead > 1.5 && ahead < 9) continue; c.g.position.x += c.dir * c.v * dt * sp; for (const w of c.g.userData.wheels || []) w.rotation.z -= c.dir * c.v * dt * sp / .38; if (c.g.position.x > 150) c.g.position.x = -110; if (c.g.position.x < -110) c.g.position.x = 150; } }; requestAnimationFrame(loop); }
 setInterval(() => { const h = (G.min / 60) % 24, night = h >= 18 || h < 6; winMat.emissiveIntensity = night ? .9 : 0; lampMat.emissiveIntensity = night ? 1.3 : 0; }, 2000);
 
 /* ---- Salidas: el Sim va a un lugar de la ciudad y vuelve con los efectos ---- */
@@ -4072,6 +4080,7 @@ setInterval(() => {
   if (LIFE.last !== G.day && G.min >= 480 && cycleDay() === LIFE.bd) {
     LIFE.last = G.day; LIFE.bdDay = G.day; LIFE.age++; G.money += 100; S.needs.fun = clamp(S.needs.fun + 30, 0, 100); lifeSave();
     toast('🎂 ¡Cumpleaños de ' + S.name + '! Cumple ' + LIFE.age + ' años · regalo +$100'); confetti(); note(523.3, .06, .4); setTimeout(() => note(659.3, .06, .4), 130); setTimeout(() => note(784, .06, .7), 260); saveSoon(); return; }
+  for (const n of NG.list) { if (n.lastBd !== G.day && cycleDay() === n.bd) { n.lastBd = G.day; n.age++; const i = NG.list.indexOf(n); n.pts = (n.pts || 0) + 5; if (i === NG.cur) REL.pts = n.pts; ngSave(); toast('🎂 ¡Hoy ' + n.name + ' cumple ' + n.age + ' años!'); ngPick(i); if (VIS.invite()) { G.money += 50; saveSoon(); toast(n.name + ' viene a celebrarlo y te trae $50 🎁'); } } }
 }, 1000);
 { const _rp4 = renderPhone; renderPhone = function () { _rp4(); const p = $('#phone'); if (!p || p.hidden) return;
     if (LIFE.bdDay === G.day && LIFE.party !== G.day) p.insertAdjacentHTML('beforeend', '<button class="btn" data-party="1" style="margin-top:8px;width:100%;justify-content:center">🎂 Fiesta de cumpleaños · $80</button>'); }; }
@@ -4138,9 +4147,7 @@ function renderFam() {
 
 /* ===== Coche propio: se compra por teléfono y el Sim conduce al trabajo (mucho más rápido que a pie) ===== */
 const CAR = { owned: false }; try { CAR.owned = localStorage.getItem('cdcCar') === '1'; } catch (e) { /* sin guardado */ }
-const carMesh = new THREE.Group();
-bx(carMesh, 4.2, .7, 1.9, 0x2f6fd6, 0, .35, 0); bx(carMesh, 2.2, .65, 1.7, 0xdfe9f2, -.2, 1, 0); bx(carMesh, .12, .3, 1.5, 0xfff1b8, 2.1, .55, 0, { mat: glowMat(0xfff1b8, .5) });
-for (const a of [-1.4, 1.4]) for (const b of [-.95, .95]) cy(carMesh, .38, .38, .3, 0x1c1c22, a, .05, b, { rx: Math.PI / 2, seg: 10 });
+const carMesh = makeCar(0x2f6fd6);
 carMesh.traverse(m => { m.castShadow = false; }); scene.add(carMesh); carMesh.visible = CAR.owned;
 const carPark = () => { carMesh.position.set(30, 0, 30.4); carMesh.rotation.y = -Math.PI / 2; };
 carPark();
@@ -4154,7 +4161,7 @@ function driveStep(dt) {
   const dx = t[0] - carMesh.position.x, dz = t[1] - carMesh.position.z, d = Math.hypot(dx, dz), st = 9 * dt * sp;
   if (d > .05) { const a = Math.atan2(-dz, dx); let da = a - carMesh.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); carMesh.rotation.y += da * Math.min(1, dt * 10); }
   if (d <= st) { carMesh.position.x = t[0]; carMesh.position.z = t[1]; COM.pi++; if (COM.pi >= COM.pts.length) { COM.drive = false; const home = COM.mode === 'home'; comEnd(); if (home) carPark(); } }
-  else { carMesh.position.x += dx / d * st; carMesh.position.z += dz / d * st; }
+  else { carMesh.position.x += dx / d * st; carMesh.position.z += dz / d * st; for (const w of carMesh.userData.wheels || []) w.rotation.z -= st / .38; }
   S.pos.x = carMesh.position.x; S.pos.z = carMesh.position.z;
 }
 { const _us2 = updateSim; updateSim = function (dt) { if (COM.on && COM.drive) return driveStep(dt); _us2(dt); }; }
@@ -4178,18 +4185,18 @@ function carRoute(cx, back) {
     const dx = q[0] - carMesh.position.x, dz = q[1] - carMesh.position.z, d = Math.hypot(dx, dz), st = 9 * dt * sp;
     if (d > .05) { let da = Math.atan2(-dz, dx) - carMesh.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); carMesh.rotation.y += da * Math.min(1, dt * 10); }
     if (d <= st) { carMesh.position.x = q[0]; carMesh.position.z = q[1]; CM.pi++; if (CM.pi >= CM.pts.length) { CM.on = false; if (CM.back) carPark(); } }
-    else { carMesh.position.x += dx / d * st; carMesh.position.z += dz / d * st; } }; requestAnimationFrame(loop); }
+    else { carMesh.position.x += dx / d * st; carMesh.position.z += dz / d * st; for (const w of carMesh.userData.wheels || []) w.rotation.z -= st / .38; } }; requestAnimationFrame(loop); }
 
 /* ===== Vecindario: 4 vecinos con casa, aspecto y amistad propios ===== */
 const NEIGH0 = [
-  { name: 'Lucas', hx: -14, shirt: 0x3a8fe0, skin: 0xe8b48a, hair: 0x3a2418, pts: 0 }, { name: 'Camila', hx: -30, shirt: 0xe8564a, skin: 0xf0c9a0, hair: 0x6b4226, pts: 0 },
-  { name: 'Diego', hx: 52, shirt: 0x43b86a, skin: 0xa66a45, hair: 0x1c1c22, pts: 0 }, { name: 'Sofía', hx: 70, shirt: 0x9b6be0, skin: 0xe8b48a, hair: 0xc9a14a, pts: 0 },
+  { name: 'Lucas', hx: -14, shirt: 0x3a8fe0, skin: 0xe8b48a, hair: 0x3a2418, pts: 0, age: 24, bd: 12, lastBd: 0 }, { name: 'Camila', hx: -30, shirt: 0xe8564a, skin: 0xf0c9a0, hair: 0x6b4226, pts: 0, age: 22, bd: 3, lastBd: 0 },
+  { name: 'Diego', hx: 52, shirt: 0x43b86a, skin: 0xa66a45, hair: 0x1c1c22, pts: 0, age: 27, bd: 9, lastBd: 0 }, { name: 'Sofía', hx: 70, shirt: 0x9b6be0, skin: 0xe8b48a, hair: 0xc9a14a, pts: 0, age: 25, bd: 13, lastBd: 0 },
 ];
 const NG = { list: NEIGH0.map(n => Object.assign({}, n)), cur: 0, invited: false };
-try { const sv = JSON.parse(localStorage.getItem('cdcNeigh') || 'null'); if (sv && sv.list && sv.list.length === 4) { NG.list.forEach((n, i) => { n.pts = sv.list[i].pts || 0; }); NG.cur = sv.cur || 0; } } catch (e) { /* sin guardado */ }
+try { const sv = JSON.parse(localStorage.getItem('cdcNeigh') || 'null'); if (sv && sv.list && sv.list.length === 4) { NG.list.forEach((n, i) => { n.pts = sv.list[i].pts || 0; n.age = sv.list[i].age || n.age; n.bd = sv.list[i].bd || n.bd; n.lastBd = sv.list[i].lastBd || 0; }); NG.cur = sv.cur || 0; } } catch (e) { /* sin guardado */ }
 { const i = NG.list.findIndex(n => n.name === REL.name); if (i >= 0) NG.cur = i; else { REL.name = NG.list[NG.cur].name; }
   NG.list[NG.cur].pts = Math.max(NG.list[NG.cur].pts, REL.pts || 0); }
-const ngSave = () => { NG.list[NG.cur].pts = REL.pts; try { localStorage.setItem('cdcNeigh', JSON.stringify({ list: NG.list.map(n => ({ pts: n.pts })), cur: NG.cur })); localStorage.setItem('cdcRel', JSON.stringify(REL)); } catch (e) { /* nada */ } };
+const ngSave = () => { NG.list[NG.cur].pts = REL.pts; try { localStorage.setItem('cdcNeigh', JSON.stringify({ list: NG.list.map(n => ({ pts: n.pts, age: n.age, bd: n.bd, lastBd: n.lastBd || 0 })), cur: NG.cur })); localStorage.setItem('cdcRel', JSON.stringify(REL)); } catch (e) { /* nada */ } };
 function ngLook(n) {
   const g = VIS.g, c = g.userData.cur || (g.userData.cur = { shirt: g.children[0].material.color.getHex(), skin: 0xe8b48a, hair: 0x3a2418 });
   g.traverse(o => { if (!o.isMesh) return; const h = o.material.color.getHex(); for (const k of ['shirt', 'skin', 'hair']) if (h === c[k]) { o.material = M(n[k], .8); break; } });
