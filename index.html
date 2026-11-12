@@ -1221,7 +1221,12 @@ const WOOD = 0xa8744a, WOOD_D = 0x7b5133, WHITE = 0xf5f2ea, STEEL = 0xc9ced6;
 
 /* ===== Catalogo ===== */
 const CAT = {};
-function def(id, o) { o.id = id; CAT[id] = o; return o; }
+function def(id, o) {
+  const old = CAT[id];
+  if (old) { if (!o.acts && old.acts) o.acts = old.acts; for (const k of ['out', 'anywhere']) if (o[k] === undefined && old[k]) o[k] = old[k]; }
+  if (o.cat === 'jardin' && o.out === undefined && !o.anywhere) o.out = true;
+  o.id = id; CAT[id] = o; return o;
+}
 const CATS = [['sala', 'Sala'], ['cocina', 'Cocina'], ['bano', 'Baño'], ['dormir', 'Dormitorio'], ['estudio', 'Estudio'], ['jardin', 'Jardín']];
 const ACT = {
   fun: (n, v, min, extra) => Object.assign({ min, fx: { fun: v } }, extra),
@@ -1804,7 +1809,7 @@ function furnishStart() {
   P('rug', 23, 20, 1); P('sofa', 22, 21, 1); P('coffeetable', 24, 21, 1); P('tv', 29, 20, 3); P('armchair', 26, 24, 1);
   P('bookshelf', 16, 20, 1); P('floorlamp', 16, 25, 0); P('plant', 28, 25, 0); P('piano', 20, 24, 2);
   // jardin
-  P('fireplace', 26, 12, 0); P('aquarium', 28, 12, 0); P('easel', 12, 17, 2); P('fountain', 33, 27, 0); P('telescope', 6, 20, 0); P('bench', 31, 15, 3); P('bbq', 32, 20, 3); P('plant', 6, 24, 0);
+  P('fireplace', 26, 12, 0); P('aquarium', 28, 12, 0); P('easel', 12, 17, 2); P('fountain', 33, 27, 0); P('telescope', 6, 20, 0); P('landline', 18, 22, 0); P('bench', 31, 15, 3); P('bbq', 32, 20, 3); P('plant', 6, 24, 0);
 }
 
 /* ===== El Sim: modelo ===== */
@@ -1817,11 +1822,11 @@ const PANTS = ['#2b3a55', '#1c1c22', '#7a5a3a', '#6a7a8a', '#8a2f3f', '#3a6a4a']
 const LOOK = { skin: 1, hair: 0, style: 'long', shirt: 0, pants: 0, gender: 'f' };
 const S = {
   name: 'Valentina', pos: { x: 22.5, z: 24.4 }, y: FLOOR_Y, face: Math.PI, state: 'idle', path: [], pi: 0, queue: [],
-  needs: { hunger: 78, energy: 82, bladder: 80, hygiene: 85, fun: 70 }, mood: 75, autoT: 2, bubble: null, t: 0,
+  needs: { hunger: 78, energy: 82, bladder: 80, hygiene: 85, fun: 70, social: 72 }, mood: 75, autoT: 2, bubble: null, t: 0,
   J: null, T: null, rem: 0, tot: 0, tween: null, exitPos: null, atY: 0, label: '', prop: null, swim: 0, jumpT: 0,
 };
-const NEED_DECAY = { hunger: .12, energy: .1, bladder: .2, hygiene: .075, fun: .15 };   // por minuto de juego
-const NEED_LABEL = { hunger: 'Hambre', energy: 'Energía', bladder: 'Baño', hygiene: 'Higiene', fun: 'Diversión' };
+const NEED_DECAY = { hunger: .12, energy: .1, bladder: .2, hygiene: .075, fun: .15, social: .09 };   // por minuto de juego
+const NEED_LABEL = { hunger: 'Hambre', energy: 'Energía', bladder: 'Baño', hygiene: 'Higiene', fun: 'Diversión', social: 'Social' };
 
 let sim = null;
 function buildSim() {
@@ -2003,7 +2008,7 @@ const groundY = (x, z) => inHouse(Math.floor(x), Math.floor(z)) ? FLOOR_Y : (x >
 function simCell() { return [Math.floor(S.pos.x), Math.floor(S.pos.z)]; }
 function say(text, secs = 2.6) { S.bubble = { text, t: secs }; }
 function updMood() {
-  const n = S.needs, w = { hunger: 1.2, energy: 1.2, bladder: 1.1, hygiene: .8, fun: 1 };
+  const n = S.needs, w = { hunger: 1.2, energy: 1.2, bladder: 1.1, hygiene: .8, fun: 1, social: .8 };
   let s = 0, ws = 0; for (const k in w) { s += n[k] * w[k]; ws += w[k]; }
   let m = s / ws; const low = Math.min(...Object.values(n)); if (low < 20) m -= (20 - low) * .8;
   S.mood = clamp(m, 0, 100);
@@ -2221,7 +2226,7 @@ function think(dt) {
   const n = S.needs;
   if (n.bladder <= 0 && S.state !== 'do') { n.bladder = 55; n.hygiene = Math.max(0, n.hygiene - 25); n.fun = Math.max(0, n.fun - 15); say('¡Oh no!…', 3); toast('Hubo un accidente…', true); }
   if (S.thoughtT <= 0 && S.state !== 'do') {
-    const msgs = { hunger: '¡Tengo hambre!', energy: (LOOK.gender === 'm' ? 'Estoy agotado…' : 'Estoy agotada…'), bladder: '¡Necesito el baño!', hygiene: 'Necesito una ducha', fun: '¡Qué aburrimiento!' };
+    const msgs = { hunger: '¡Tengo hambre!', energy: (LOOK.gender === 'm' ? 'Estoy agotado…' : 'Estoy agotada…'), bladder: '¡Necesito el baño!', hygiene: 'Necesito una ducha', fun: '¡Qué aburrimiento!', social: 'Me siento solo…' };
     let k = Object.keys(n).sort((a, b) => n[a] - n[b])[0];
     if (n[k] < 22) { say(msgs[k], 3); S.thoughtT = 20; } else S.thoughtT = 8;
   }
@@ -2232,13 +2237,14 @@ function think(dt) {
 }
 function chooseAuto() {
   const n = S.needs, hour = (G.min / 60) % 24, night = hour >= 23 || hour < 6;
-  let want = null, mn = 101; for (const k in n) if (n[k] < mn) { mn = n[k]; want = k; }
+  let want = null, mn = 101; for (const k in n) if (n[k] < mn && (k !== 'social' || objects.some(o => (o.def.acts || []).some(a => a.fx && a.fx.social > 10)))) { mn = n[k]; want = k; }
   if (n.energy < 25 || (night && n.energy < 78)) want = 'energy';
   else if (mn >= 52) want = null;
   const c = []; const sc = S.pos;
   for (const o of objects) for (const a of o.def.acts || []) {
     if (a.pose === 'sit' && !a.tv && want !== 'energy' && want !== 'fun') continue;
     if (a.cost && G.money < a.cost) continue;
+    if (FOODNEED[a.id] && FOOD.n < FOODNEED[a.id]) continue;
     if (a.id === 'dress' && Math.random() > .3) continue;
     const ctr = l2w(o, 0, 0), dist = Math.hypot(ctr.x - sc.x, ctr.z - sc.z);
     let w = 0;
@@ -2782,7 +2788,7 @@ function resetWorld() {
   try { localStorage.removeItem('casaDulceCasa1'); } catch (e) { /* nada */ }
   clearGhost(); selectObj(null);
   [...objects].forEach(removeObj); furnishStart();
-  Object.assign(G, { min: 8 * 60, day: 1, money: 7500 }); Object.assign(S.needs, { hunger: 78, energy: 82, bladder: 80, hygiene: 85, fun: 70 });
+  Object.assign(G, { min: 8 * 60, day: 1, money: 7500 }); Object.assign(S.needs, { hunger: 78, energy: 82, bladder: 80, hygiene: 85, fun: 70, social: 72 });
   S.queue.length = 0; S.state = 'idle'; S.pos.x = 22.5; S.pos.z = 24.4; S.act = null; S.target = null;
   $('#help').hidden = true; setMode('live'); showWelcome();
 }
@@ -2901,7 +2907,7 @@ const pet = (() => {
     const f = SPEED_F[G.speed] * dt;
     tail.rotation.z = Math.sin(t * 7) * .45;
     if (P.want && Math.hypot(S.pos.x - P.x, S.pos.z - P.z) < 1.7) {
-      P.want = false; P.hold = 0; S.needs.fun = Math.min(100, S.needs.fun + 25); say('¡Qué cariñoso eres, ' + P.name + '!', 3);
+      P.want = false; P.hold = 0; S.needs.fun = Math.min(100, S.needs.fun + 25); S.needs.social = Math.min(100, S.needs.social + 10); say('¡Qué cariñoso eres, ' + P.name + '!', 3);
       for (let i = 0; i < 3; i++) emit('heart', P.x + (i - 1) * .25, 1.1 + i * .2, P.z, 0, .5, 0, 1.6, .3);
     }
     if (P.hold > 0) { P.hold -= f; if (P.hold <= 0) P.want = false; }
@@ -2985,7 +2991,7 @@ const VIS = (() => {
       V.t -= f; lL.rotation.x = lR.rotation.x = 0; aL.rotation.x = Math.sin(t * 3) * .5 - .6; aR.rotation.x = Math.sin(t * 3 + 2) * .5 - .6;
       if (S.state === 'idle') S.face = angLerp(S.face, Math.atan2(V.x - S.pos.x, V.z - S.pos.z), .08);
       g.rotation.y = angLerp(g.rotation.y, Math.atan2(S.pos.x - V.x, S.pos.z - V.z), .08);
-      V.ft -= dt; if (V.ft <= 0) { V.ft = 2.5; emit('heart', V.x, 2, V.z, 0, .4, 0, 1.5, .26); S.needs.fun = Math.min(100, S.needs.fun + 2.5); }
+      V.ft -= dt; if (V.ft <= 0) { V.ft = 2.5; emit('heart', V.x, 2, V.z, 0, .4, 0, 1.5, .26); S.needs.fun = Math.min(100, S.needs.fun + 2.5); S.needs.social = Math.min(100, S.needs.social + 4); }
       if (V.t <= 0) { toast('El vecino se despidió'); go([[22.5, 28.9], [22.5, 36]], 'out'); }
     }
     g.position.set(V.x, groundY(V.x, V.z), V.z);
@@ -3257,7 +3263,7 @@ def('wardrobe', { name: 'Armario', cat: 'dormir', price: 640, w: 2, d: 1, build(
   bx(g, 1.8, 2.1, .6, WOOD, 0, 0, -.2, { r: .03 }); bx(g, 1.86, .08, .64, WOOD_D, 0, 2.1, -.2); bx(g, .02, 2.0, .02, WOOD_D, 0, .05, .11);
   bx(g, .04, .22, .04, STEEL, -.1, .95, .12, { metal: .6 }); bx(g, .04, .22, .04, STEEL, .1, .95, .12, { metal: .6 }); bx(g, 1.8, .08, .6, WOOD_D, 0, 0, -.2);
 } });
-def('telescope', { name: 'Telescopio', cat: 'estudio', price: 450, w: 1, d: 1, build(g) {
+def('telescope', { name: 'Telescopio', cat: 'estudio', price: 450, w: 1, d: 1, out: false, anywhere: true, build(g) {
   bx(g, .04, 1.0, .04, STEEL, .14, 0, .06, { rz: -.25 }); bx(g, .04, 1.0, .04, STEEL, -.14, 0, .06, { rz: .25 }); bx(g, .04, 1.0, .04, STEEL, 0, 0, -.14, { rx: .25 });
   cy(g, .06, .08, .9, 0xe8e8f0, 0, 1.0, .1, { rx: -1, metal: .4 }); cy(g, .09, .09, .06, 0x2a2a2e, 0, 1.0, 0);
 } });
@@ -3325,7 +3331,7 @@ const REL = { pts: 0, name: ['Lucas', 'Camila', 'Diego', 'Sofía', 'Tomás'][Mat
 const RT = [40, 100, 200], RLN = ['Conocido', 'Amigo', 'Buen amigo', 'Mejor amigo'];
 const relLvl = () => RT.filter(t => REL.pts >= t).length;
 function addRel(n) {
-  const b = relLvl(); REL.pts = Math.max(0, REL.pts + n); const a = relLvl();
+  const b = relLvl(); REL.pts = Math.max(-60, REL.pts + n); const a = relLvl();
   if (a > b) { G.money += a * 200; toast('¡' + REL.name + ' ahora es tu ' + RLN[a].toLowerCase() + '! +$' + a * 200); note(523.3, .06, .4); setTimeout(() => note(784, .06, .6), 150); }
   try { localStorage.setItem('cdcRel', JSON.stringify(REL)); } catch (e) { /* nada */ } renderSkills();
 }
@@ -3700,7 +3706,7 @@ setInterval(() => {
     desk: '<rect x="2.5" y="3.5" width="19" height="12" rx="1.8" fill="#3a4f7a"/><rect x="4.5" y="5.5" width="15" height="8" rx="1" fill="#7fe0ff" stroke="none"/><rect x="9.5" y="15.5" width="5" height="3.4" fill="#8a9199"/><rect x="6.5" y="19" width="11" height="2.2" rx="1" fill="#a8744a"/>',
     tree: '<circle cx="12" cy="9" r="7" fill="#5fbf4a"/><circle cx="7.5" cy="12" r="4" fill="#4a9a45"/><circle cx="16.5" cy="12" r="4" fill="#4a9a45"/><rect x="10.6" y="13" width="2.8" height="8.5" fill="#7b5133"/>'
   };
-  const ico = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" stroke="#0e2860" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">' + ICO[n] + '</svg>';
+  const ico = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" stroke="#0e2860" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">' + (ICO[n] || ICO.people) + '</svg>';
   const dress = (sel, n) => { const el = typeof sel === 'string' ? $(sel) : sel; if (el && !el.querySelector(':scope > .ic')) el.insertAdjacentHTML('afterbegin', ico(n)); };
 
   /* Dinero: billete verde con rombo (como el cristal del Sim) */
@@ -3744,7 +3750,7 @@ moodlets = function () {
   if (n.hunger > 80) add('Barriga llena', 8); if (n.hunger < 25) add('Mucha hambre', -15);
   if (n.energy > 80) add('Descansado', 8); if (n.energy < 25) add('Agotado', -15);
   if (n.bladder < 25) add('Urgencia', -12); if (n.hygiene > 85) add('Fresco', 6); if (n.hygiene < 25) add('Sucio', -10);
-  if (n.fun > 75) add('Entretenido', 8); if (n.fun < 25) add('Aburrido', -10);
+  if (n.fun > 75) add('Entretenido', 8); if (n.fun < 25) add('Aburrido', -10); if (n.social > 75) add('Acompañado', 6); if (n.social < 25) add('Solitario', -10);
   if (BILLS.list.some(b => G.day > b.dueDay)) add('Facturas vencidas', -12);
   if (FAINT.on) add('Desmayado', -20); if ((JOB.miss || 0) > 0) add('Faltó al trabajo', -8);
   return m.length ? m.map(x => `<span class="mo-${x[1] > 0 ? 1 : 0}">${x[0]} ${x[1] > 0 ? '+' : ''}${x[1]}</span>`).join('') : '<span>Sin cambios</span>';
@@ -3829,6 +3835,8 @@ var PLACES = {
   gym: { n: 'Gimnasio', cx: 44, w: 12, d: 10, h: 6, col: 0x6fb7a8, sg: '#1f6a5a', out: { t: 'Hacer ejercicio', cost: 15, min: 60, fx: { fun: 15, energy: -20, hygiene: -18, hunger: -10 }, xp: ['ejercicio', 6] } },
   tienda: { n: 'Tienda', cx: -30, w: 12, d: 10, h: 6, col: 0x8fd18a, sg: '#2d7a3a', out: { t: 'Hacer las compras', cost: 30, min: 45, fx: { hunger: 30, fun: 6 } } },
   clinica: { n: 'Clínica', cx: 88, w: 14, d: 12, h: 10, col: 0xf2f2f2, sg: '#c0392b', out: { t: 'Chequeo médico', cost: 60, min: 60, fx: { energy: 20, hygiene: 15, hunger: 10 } } },
+  lib: { n: 'Biblioteca', cx: -46, w: 12, d: 10, h: 7, col: 0xc9b38f, sg: '#6a4a2a', out: { t: 'Estudiar en la biblioteca', cost: 0, min: 75, fx: { fun: 6, energy: -6 }, soc: 8, xp: ['logica', 8] } },
+  cafe: { n: 'Café Luna', cx: 104, w: 12, d: 10, h: 6, col: 0xe6c9a0, sg: '#7a3f2a', out: { t: 'Café con amigos', cost: 12, min: 45, fx: { energy: 22, fun: 12, hunger: 12 }, soc: 40 } },
   park: { n: 'Parque', cx: 64, out: { t: 'Pasear por el parque', cost: 0, min: 90, fx: { fun: 35, energy: -8, hygiene: -5 } } },
 };
 function building(p) {
@@ -3881,7 +3889,7 @@ function goOut(k) {
 }
 function outEnd() {
   const o = PLACES[OUT.k].out; OUT.on = false; if (CAR.owned) carRoute(PLACES[OUT.k].cx, true);
-  for (const k in o.fx) S.needs[k] = clamp(S.needs[k] + o.fx[k], 0, 100);
+  for (const k in o.fx) S.needs[k] = clamp(S.needs[k] + o.fx[k], 0, 100); S.needs.social = clamp(S.needs.social + (o.soc || 25), 0, 100); if (OUT.k === 'tienda') foodAdd(8);
   if (o.xp) { PROG.xp[o.xp[0]] = (PROG.xp[o.xp[0]] || 0) + o.xp[1] * (HAS('artistico') ? 2 : 1); try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ } }
   S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
   camHome(); say('¡Qué buen rato!'); toast('De vuelta en casa · ' + o.t + ' ✔'); note(659.3, .06, .5); saveSoon();
@@ -4031,7 +4039,7 @@ function famAdd() {
   stopSimNow(); FAM.list[FAM.cur] = famSnap();
   const R = n => Math.floor(Math.random() * n), g = R(2) ? 'm' : 'f', names = FNAMES[g].filter(n => !FAM.list.some(m => m.name === n));
   const look = { skin: R(SKINS.length), hair: R(HAIRS.length), shirt: R(SHIRTS.length), pants: R(PANTS.length), gender: g, style: 'long' }; Object.assign(LOOK, look); const st = stylesFor(); look.style = st[R(st.length)][0]; look.acc = 'none'; Object.assign(look, { face: ['oval', 'round', 'square'][R(3)], brow: 'normal', nose: ['small', 'mid', 'big'][R(3)], beard: 'none', marks: 'none', ears: 'none', build: ['slim', 'avg', 'broad'][R(3)], height: 'mid', eye: R(6), lips: R(6) });
-  const tk = Object.keys(TRAITS.defs), m = { name: names[R(names.length)] || 'Sim', look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70 }, pos: { x: 22.5, z: 24.4 },
+  const tk = Object.keys(TRAITS.defs), m = { name: names[R(names.length)] || 'Sim', look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70, social: 70 }, pos: { x: 22.5, z: 24.4 },
     prog: { xp: {}, jobs: 0 }, job: Object.assign({}, JOBDEF, { lastShift: G.day }), tr: 'oficina', traits: [tk[R(tk.length)]], w: { slots: [], pts: 0 }, t: jobAbs(), life: { age: 18 + R(10), bd: 1 + R(14), last: 0, bdDay: 0, party: 0 } };
   FAM.list.push(m); FAM.cur = FAM.list.length - 1; famLoad(m); famSave(); camHome();
   toast('¡Nuevo miembro: ' + S.name + '! Rasgo: ' + TRAITS.defs[TRAITS.sel[0]].n); note(659.3, .05, .4); setTimeout(() => note(880, .05, .5), 120); saveSoon();
@@ -4115,7 +4123,7 @@ function ngLook(n) {
 function ngPick(i) { if (i === NG.cur) return; NG.list[NG.cur].pts = REL.pts; NG.cur = i; REL.name = NG.list[i].name; REL.pts = NG.list[i].pts; ngLook(NG.list[i]); ngSave(); }
 ngLook(NG.list[NG.cur]);
 { let prev = 'idle'; setInterval(() => { // visitas espontáneas: llega un vecino al azar
-    if (prev === 'idle' && VIS.st !== 'idle' && !NG.invited) ngPick(Math.floor(Math.random() * 4)); if (VIS.st === 'idle') NG.invited = false; prev = VIS.st; }, 250); }
+    if (prev === 'idle' && VIS.st !== 'idle' && !NG.invited) ngPick(ngRandom()); if (VIS.st === 'idle') NG.invited = false; prev = VIS.st; }, 250); }
 setInterval(() => { if (G.started) ngSave(); }, 4000);
 for (const n of NG.list) { const c = document.createElement('canvas'); c.width = 256; c.height = 64; const x = c.getContext('2d');
   x.fillStyle = 'rgba(20,40,96,.88)'; x.beginPath(); x.roundRect ? x.roundRect(4, 4, 248, 56, 16) : x.rect(4, 4, 248, 56); x.fill(); x.fillStyle = '#fff'; x.font = '34px "Lilita One","Trebuchet MS",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n.name, 128, 34);
@@ -4278,6 +4286,272 @@ setInterval(drawPortrait, 1200); drawPortrait();
     if (!G.started && stage.visible) { const pt = camera.aspect < .9, g = groups[i]; CAM.goal.dist = pt ? g[2] + (g[2] < 4 ? 1.1 : 2.6) : g[2]; CAM.goal.ty = pt ? (g[3] > 1.2 ? .85 : .15) : g[3]; } note(523.3, .03, .15); }
   [...card.children].forEach(c => card.removeChild(c)); card.append(head, tabs, body, foot);
   { const _sw3 = showWelcome; showWelcome = function () { _sw3(); show(0); }; } show(0); }
+
+/* ===== Parche 6 (estilo Los Sims 3): Social, oportunidades, estaciones con nieve, fotos, teléfono fijo, ajedrez y karaoke ===== */
+{
+  def('landline', { name: 'Teléfono fijo', cat: 'sala', price: 60, w: 1, d: 1, build(g) {
+    bx(g, .6, .04, .5, WOOD, 0, .7, 0, { r: .01 }); legs(g, .6, .5, .7, WOOD_D, .05, .03);
+    bx(g, .22, .07, .16, 0x2a2a2e, 0, .74, 0, { r: .02 }); bx(g, .2, .03, .05, 0xe8564a, 0, .82, 0, { r: .01 });
+  }, acts: [{ id: 'call', label: 'Llamar a un amigo', min: 20, fx: { social: 40, fun: 6 }, pose: 'wave', spots: [{ at: [0, .55, Math.PI, 0], stand: [0, 1] }] }] });
+  def('chess', { name: 'Mesa de ajedrez', cat: 'estudio', price: 260, w: 1, d: 1, build(g) {
+    cy(g, .05, .07, .7, WOOD_D, 0, 0, 0); bx(g, .7, .05, .7, 0xe8dcc4, 0, .7, 0, { r: .01 });
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2) bx(g, .17, .01, .17, 0x3a2a1a, -.26 + i * .175, .75, -.26 + j * .175);
+    sp(g, .05, 0xf5f2ea, -.1, .8, .1); sp(g, .05, 0x1a1a1f, .15, .8, -.1);
+  }, acts: [{ id: 'chess', label: 'Jugar al ajedrez', min: 40, fx: { fun: 26, social: 4 }, pose: 'cook', spots: [{ at: [0, .8, Math.PI, 0], stand: [0, 1] }] }] });
+  def('karaoke', { name: 'Karaoke', cat: 'sala', price: 540, w: 1, d: 1, build(g) {
+    bx(g, .6, 1.0, .4, 0x2a2e36, 0, 0, -.2, { r: .03 }); bx(g, .46, .3, .02, 0xff5ad6, 0, .62, 0, { mat: glowMat(0xff5ad6, .9) });
+    cy(g, .12, .12, .04, 0x8a9199, 0, .2, 0, { rx: Math.PI / 2 }); cy(g, .015, .015, 1.1, STEEL, .4, 0, .1); sp(g, .05, 0x15171b, .4, 1.15, .1);
+  }, acts: [{ id: 'karaoke', label: 'Cantar karaoke', min: 30, fx: { fun: 34, social: 12 }, pose: 'dance', spots: [{ at: [0, .9, Math.PI, 0], stand: [0, 1] }] }] });
+  Object.assign(ACTSK, { chess: 'logica', karaoke: 'musica' });
+  WL.call = { t: 'Charlar con un amigo', a: 'call' }; WL.chess = { t: 'Jugar al ajedrez', a: 'chess' }; WL.karaoke = { t: 'Cantar karaoke', a: 'karaoke' };
+  { const _bc6 = buildCatalog; buildCatalog = function () { _bc6(); $$('.item').forEach(b => { if (['landline', 'chess', 'karaoke'].includes(b.dataset.id)) b.classList.add('nuevo'); }); }; }
+
+  /* Oportunidades: misiones con plazo y recompensa */
+  const OPP_POOL = [
+    { t: 'Cocinar 2 veces', acts: ['cook', 'grill', 'micro'], n: 2, r: 260 }, { t: 'Ducharte 2 veces', acts: ['shower', 'bath'], n: 2, r: 140 },
+    { t: 'Hacer música 2 veces', acts: ['play', 'guitar', 'karaoke'], n: 2, r: 260 }, { t: 'Hacer ejercicio 2 veces', acts: ['run', 'lift', 'box', 'jump'], n: 2, r: 220 },
+    { t: 'Llamar a un amigo 2 veces', acts: ['call'], n: 2, r: 180 }, { t: 'Dormir una noche', acts: ['sleep'], n: 1, r: 150 },
+    { t: 'Leer 2 veces', acts: ['read'], n: 2, r: 160 }, { t: 'Jugar 2 partidas', acts: ['game', 'arcade', 'billiards', 'chess'], n: 2, r: 200 }, { t: 'Pintar un cuadro', acts: ['paint'], n: 1, r: 240 },
+  ];
+  const OPP = { list: [], next: 0, done: 0 }; try { Object.assign(OPP, JSON.parse(localStorage.getItem('cdcOpp') || '{}')); if (!Array.isArray(OPP.list)) OPP.list = []; } catch (e) { OPP.list = []; }
+  const oppSave = () => { try { localStorage.setItem('cdcOpp', JSON.stringify(OPP)); } catch (e) { /* nada */ } };
+  function oppNew() {
+    if (OPP.list.length >= 3) return; const used = OPP.list.map(o => o.t), c = OPP_POOL.filter(p => !used.includes(p.t)); if (!c.length) return;
+    const p = c[Math.floor(Math.random() * c.length)]; OPP.list.push({ t: p.t, acts: p.acts, n: p.n, r: p.r, have: 0, due: jobAbs() + 2 * 1440 });
+    toast('Nueva oportunidad: ' + p.t); note(698.5, .05, .4); oppSave();
+  }
+  function oppProgress(id) {
+    for (const o of OPP.list.slice()) if (o.acts.includes(id)) { o.have++;
+      if (o.have >= o.n) { G.money += o.r; OPP.done++; OPP.list = OPP.list.filter(x => x !== o); toast('Oportunidad cumplida: ' + o.t + ' (+$' + o.r + ')'); note(784, .06, .5); for (let k = 0; k < 3; k++) emit('heart', S.pos.x + (k - 1) * .3, S.y + 2.2, S.pos.z, 0, .6, 0, 1.6, .3); } }
+    oppSave();
+  }
+  { const _f6 = finishDo; finishDo = function () { const a = S.act, c = S.cancelled; _f6(); if (a && !c) { oppProgress(a.id); if (a.id === 'call') addRel(3); } }; }
+  setInterval(() => {
+    if (!G.started || !G.speed) return; const now = jobAbs();
+    OPP.list = OPP.list.filter(o => { if (now > o.due) { toast('Oportunidad vencida: ' + o.t, true); return false; } return true; });
+    if (now >= OPP.next && OPP.list.length < 3) { oppNew(); OPP.next = now + 600; oppSave(); }
+  }, 1000);
+  { const _rs7 = renderSkills; renderSkills = function () { _rs7(); const p = $('#skills'); if (!p || p.hidden) return; const now = jobAbs();
+    p.insertAdjacentHTML('beforeend', '<h3 class="h2">Oportunidades <small>' + OPP.done + ' cumplidas</small></h3>' + (OPP.list.length ? OPP.list.map(o => '<div class="wt"><i></i><b>' + o.t + '</b>&nbsp;· ' + o.have + '/' + o.n + ' · $' + o.r + ' · ' + Math.max(1, Math.ceil((o.due - now) / 60)) + ' h</div>').join('') : '<div class="wt"><i></i>Pronto llegará una nueva</div>')); }; }
+
+  /* Estaciones: 7 días cada una, con color del césped y de los árboles, nieve y regalo de temporada */
+  const SEAS = ['Primavera', 'Verano', 'Otoño', 'Invierno'], seasonIdx = () => Math.floor((G.day - 1) / 7) % 4;
+  const LEAF = [0x4f9a3f, 0x5fae4a, 0x438a37, 0x3f9a4a, 0x56b85a];
+  const LEAFC = [[0x56b04a, 0x66c256, 0x4a9a3f, 0x4aa54f, 0x62c066], [0x3f8a30, 0x4e9d3b, 0x347a2b, 0x378a3f, 0x4a9a4c], [0xd98a2b, 0xc9602a, 0xe0b030, 0xd0702a, 0xe3a038], [0xdfe8ee, 0xcfdbe3, 0xe6eef2, 0xd5e0e8, 0xe0e9ef]];
+  const GRC = [[1, 1, 1], [1, .97, .78], [1, .72, .45], [.88, .94, 1]];
+  const lawnM = world.children.find(m => m.geometry && m.geometry.type === 'PlaneGeometry' && Math.abs(m.geometry.parameters.width - (LOT.x1 - LOT.x0)) < .01);
+  const fieldM = world.children.find(m => m.geometry && m.geometry.type === 'PlaneGeometry' && m.geometry.parameters.width === 900);
+  function applySeason(s) {
+    for (const m of [lawnM, fieldM]) if (m) { m.material.color.setRGB(...GRC[s]); m.material.emissive.set(0xdfe8f0); m.material.emissiveIntensity = s === 3 ? .5 : 0; }
+    LEAF.forEach((c, i) => { for (const [k, m] of matCache) if (k.startsWith(c + '|')) m.color.set(LEAFC[s][i]); });
+  }
+  let lastS = -1;
+  setInterval(() => { const s = seasonIdx(); if (s === lastS) return; applySeason(s);
+    if (lastS >= 0 && G.started) { G.money += 150; toast('Llegó ' + SEAS[s] + ' · regalo de temporada +$150'); note(659.3, .05, .5); } lastS = s; }, 1000);
+  const snowN = 700, snowG = new THREE.BufferGeometry(), snowA = new Float32Array(snowN * 3);
+  for (let i = 0; i < snowN; i++) { snowA[i * 3] = (Math.random() - .5) * 80; snowA[i * 3 + 1] = Math.random() * 30; snowA[i * 3 + 2] = (Math.random() - .5) * 80; }
+  snowG.setAttribute('position', new THREE.BufferAttribute(snowA, 3));
+  const snow = new THREE.Points(snowG, new THREE.PointsMaterial({ color: 0xffffff, size: .4, transparent: true, opacity: .9, depthWrite: false }));
+  snow.frustumCulled = false; snow.visible = false; scene.add(snow);
+  dyn.push({ update(dt, t) { snow.visible = G.started && seasonIdx() === 3; if (!snow.visible) return; const a = snowG.attributes.position;
+    for (let i = 0; i < snowN; i++) { let y = a.getY(i) - dt * (1.2 + (i % 5) * .25); if (y < 0) y += 30; a.setY(i, y); a.setX(i, a.getX(i) + Math.sin(t + i) * dt * .3); }
+    a.needsUpdate = true; snow.position.set(CAM.tx, 0, CAM.tz); } });
+  { const _uh = updateHud; updateHud = function (dt) { _uh(dt); const t = $('#clockDay'); if (!t) return; const txt = DAYS[(G.day - 1) % 7] + ' · Día ' + G.day + ' · ' + SEAS[seasonIdx()]; if (t.textContent !== txt) t.textContent = txt; }; }
+
+  /* Fotos */
+  { const menu = $('#moreMenu'), b = document.createElement('button'); b.className = 'btn'; b.id = 'btnPhoto'; b.textContent = '📷 Foto'; menu.appendChild(b);
+    b.addEventListener('click', () => { menu.hidden = true; const mb = $('#btnMore'); if (mb) mb.classList.remove('on');
+      renderer.render(scene, camera); const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'pennywhistle-' + S.name + '.png'; document.body.appendChild(a); a.click(); a.remove();
+      toast('Foto guardada'); note(988, .05, .2); }); }
+  $('#help ul').insertAdjacentHTML('beforeend', '<li><b>Social:</b> nueva necesidad. Llama por el teléfono fijo, recibe visitas, acaricia a Mochi o sal a la ciudad.</li><li><b>Oportunidades:</b> misiones con plazo en tu Perfil. <b>Estaciones:</b> cambian cada 7 días (¡nieve en invierno!). <b>Más → Foto</b> guarda una imagen.</li>');
+}
+
+/* ===== Parche 7: comida, habilidades con efecto, etapas de vida, romance, vestuario, deseo de vida, sonido, ranuras y más ===== */
+const FOOD = { n: 12 }; try { Object.assign(FOOD, JSON.parse(localStorage.getItem('cdcFood') || '{}')); } catch (e) { /* sin guardado */ }
+const FOODNEED = { snack: 1, micro: 1, cook: 2, grill: 2 };
+function foodAdd(n) { FOOD.n = Math.max(0, FOOD.n + n); try { localStorage.setItem('cdcFood', JSON.stringify(FOOD)); } catch (e) { /* nada */ } }
+['fridge', 'stove', 'microwave', 'bbq'].forEach(id => (CAT[id].acts || []).forEach(a => { if (FOODNEED[a.id]) delete a.cost; }));
+{ const _si = startItem; startItem = function (item) {
+    const a = item.act, need = item.kind === 'act' && a ? FOODNEED[a.id] || 0 : 0;
+    if (need) { if (FOOD.n < need) { toast('No hay comida: pide víveres por teléfono o ve a la tienda', true); return fail('No hay comida…'); } foodAdd(-need); }
+    _si(item); if (need && S.state === 'idle') foodAdd(need); }; }
+CAT.beanbag.name = 'Puf gigante'; CAT.gbench.name = 'Banca moderna';
+
+/* Nombres de lámparas con luz nocturna de nuevo (las versiones nuevas la habían perdido) */
+function glowShade(g, rt, rb, h, y, light, level) {
+  const mat = new THREE.MeshStandardMaterial({ color: 0xf6e2a8, emissive: 0xffd27a, emissiveIntensity: 0, roughness: .8, side: THREE.DoubleSide });
+  cy(g, rt, rb, h, 0, 0, y, 0, { mat }); const l = new THREE.PointLight(0xffd58a, 0, light, 1.6); l.position.set(0, y + h / 2, 0); g.add(l); nightLights.push({ light: l, mat, level });
+}
+def('floorlamp', { name: 'Lámpara de pie', cat: 'sala', price: 140, w: 1, d: 1, build(g) { cy(g, .2, .22, .04, STEEL, 0, 0, 0, { metal: .4 }); cy(g, .022, .022, 1.5, STEEL, 0, .04, 0); glowShade(g, .2, .32, .38, 1.38, 6.5, .9); } });
+def('nightstand', { name: 'Mesita de noche', cat: 'dormir', price: 150, w: 1, d: 1, build(g) {
+  bx(g, .55, .55, .5, WOOD, 0, 0, 0, { r: .03 }); bx(g, .4, .02, .02, WOOD_D, 0, .3, .26); bx(g, .1, .03, .03, STEEL, 0, .38, .27, { metal: .6 });
+  cy(g, .06, .08, .18, STEEL, 0, .55, 0); glowShade(g, .1, .15, .2, .73, 4.5, .6); } });
+
+/* Arcos y puertas: se pueden atravesar (para dividir la casa sin bloquear el paso) */
+const WC7 = 0xe6dccb, TR7 = 0xfaf7f0;
+function frame7(g) { bx(g, .22, 2.6, .18, WC7, -.39, 0, 0, { rough: .9 }); bx(g, .22, 2.6, .18, WC7, .39, 0, 0, { rough: .9 }); bx(g, 1, .5, .18, WC7, 0, 2.1, 0, { rough: .9 }); bx(g, 1, .08, .22, TR7, 0, 2.0, 0); bx(g, 1, .1, .22, TR7, 0, 0, 0); }
+def('archway', { name: 'Arco', cat: 'muros', price: 90, w: 1, d: 1, floor: true, part: true, build(g) { frame7(g); bx(g, .3, .12, .22, WC7, 0, 2.5, 0, { r: .05 }); } });
+def('doorway', { name: 'Puerta abierta', cat: 'muros', price: 140, w: 1, d: 1, floor: true, part: true, build(g) {
+  frame7(g); const hinge = new THREE.Group(); hinge.position.set(-.37, 0, 0); hinge.rotation.y = Math.PI * .46; const leaf = bx(hinge, .72, 2.05, .05, COL.door, 0, 0, 0); leaf.position.x = .36; leaf.position.y = 1.025; g.add(hinge);
+  bx(g, .05, .1, .06, 0xd8b44a, .22, 1.0, .04, { metal: .8 }); } });
+
+/* ===== Habilidades con efecto real ===== */
+function doTick(dt, gm) {
+  const a = S.act, n = S.needs, fx = a.fx || {}, sk = ACTSK[a.id], lv = sk ? skLvl(sk) : 0;
+  for (const k in NEED_DECAY) {
+    if (k in fx) {
+      let v = fx[k];
+      if (v > 0) { if (a === EAT_ACT && k === 'hunger') v *= 1 + .12 * (S.mealQ || 0); else if (k === 'fun' && sk) v *= 1 + .06 * lv; }
+      else if (sk === 'ejercicio' && (k === 'energy' || k === 'hygiene')) v *= 1 - .06 * lv;
+      n[k] = clamp(n[k] + v / a.min * gm, 0, 100);
+    } else n[k] = clamp(n[k] - NEED_DECAY[k] * gm * (a.id === 'sleep' ? .3 : 1), 0, 100);
+  }
+  if (a.earn) { let m = 1; if (a.id === 'work') m += .05 * skLvl('logica'); if (a.id === 'paint') m += .1 * skLvl('pintura'); G.money += a.earn * m / a.min * gm; }
+  S.rem -= gm;
+  if (a.min >= 30 && !a.earn) { const pos = Object.keys(fx).filter(k => fx[k] > 0); if (pos.length && pos.every(k => n[k] >= 99.5)) S.rem = 0; }
+  if (S.rem <= 0) finishDo();
+}
+{ const _f7 = finishDo; finishDo = function () { const a = S.act, c = S.cancelled; _f7();
+    if (a && !c) { if (a.id === 'cook' || a.id === 'grill') { S.mealQ = skLvl('cocina'); if (S.mealQ >= 3) say('¡Quedó delicioso!'); } if (a === EAT_ACT) S.mealQ = 0; if (a.id === 'harvest') { foodAdd(3); toast('Cosecha: +3 porciones de comida'); } } }; }
+
+/* ===== Víveres por teléfono ===== */
+const GROC = { atAbs: 0 };
+{ const _rp7 = renderPhone; renderPhone = function () { _rp7(); const p = $('#phone'); if (!p || p.hidden) return;
+    p.insertAdjacentHTML('beforeend', '<button class="btn" data-groc="1" style="margin-top:8px;width:100%;justify-content:center">Pedir víveres · $60 · +10 porciones' + (GROC.atAbs ? ' (en camino)' : '') + '</button>'); }; }
+function orderGroceries() {
+  if (GROC.atAbs) { toast('Ya hay un pedido de víveres en camino', true); return false; }
+  if (G.money < 60) { toast('No tienes $ suficientes', true); return false; }
+  G.money -= 60; GROC.atAbs = jobAbs() + 40; toast('Víveres pedidos · llegan en ~40 min'); note(523.3, .05, .4); saveSoon(); return true;
+}
+$('#phone').addEventListener('click', e => { if (e.target.closest('[data-groc]')) { orderGroceries(); renderPhone(); } });
+
+/* ===== Etapas de vida ===== */
+const stageOf = a => a < 26 ? 'Joven adulto' : a < 46 ? 'Adulto' : 'Mayor';
+const stageMult = () => { const s = stageOf(LIFE.age); return s === 'Mayor' ? 1.15 : s === 'Joven adulto' ? .92 : 1; };
+{ const _at = applyTraits; applyTraits = function () { _at(); NEED_DECAY.energy *= stageMult(); }; }
+applyTraits();
+
+/* ===== Romance con los vecinos ===== */
+const ROM = { d: {}, day: 0 }; try { Object.assign(ROM, JSON.parse(localStorage.getItem('cdcRom') || '{}')); if (!ROM.d) ROM.d = {}; } catch (e) { ROM.d = {}; }
+const romOf = nm => ROM.d[nm] || (ROM.d[nm] = { rom: 0, st: 'none', moved: false });
+const romSave = () => { try { localStorage.setItem('cdcRom', JSON.stringify(ROM)); } catch (e) { /* nada */ } };
+const ROMST = { none: '', pareja: 'Pareja', casados: 'Casados' };
+function ngRandom() { const ok = NG.list.map((n, i) => i).filter(i => !romOf(NG.list[i].name).moved); return ok.length ? ok[Math.floor(Math.random() * ok.length)] : 0; }
+function nearestIdx(list, hex) { const c = v => typeof v === 'number' ? [v >> 16 & 255, v >> 8 & 255, v & 255] : [1, 3, 5].map(i => parseInt(v.slice(i, i + 2), 16)), t = c(hex); let b = 0, bd = 1e9; list.forEach((v, i) => { const q = c(v), d = (q[0] - t[0]) ** 2 + (q[1] - t[1]) ** 2 + (q[2] - t[2]) ** 2; if (d < bd) { bd = d; b = i; } }); return b; }
+function famAddSpouse(n) {
+  if (FAM.list.length >= 3) { toast('La casa está llena (máximo 3 Sims)', true); return false; }
+  const R = k => Math.floor(Math.random() * k), g = ['Lucas', 'Diego'].includes(n.name) ? 'm' : 'f', keep = LOOK.gender; LOOK.gender = g; const st = stylesFor(); LOOK.gender = keep;
+  const tk = Object.keys(TRAITS.defs), look = { skin: nearestIdx(SKINS, n.skin), hair: nearestIdx(HAIRS, n.hair), shirt: nearestIdx(SHIRTS, n.shirt), pants: R(PANTS.length), gender: g, style: st[R(st.length)][0], acc: 'none', face: ['oval', 'round', 'square'][R(3)], brow: 'normal', nose: ['small', 'mid', 'big'][R(3)], beard: 'none', marks: 'none', ears: 'none', build: 'avg', height: 'mid', eye: R(EYES.length), lips: R(LIPS.length) };
+  FAM.list[FAM.cur] = famSnap();
+  FAM.list.push({ name: n.name, look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70, social: 80 }, pos: { x: 22.5, z: 24.4 }, prog: { xp: {}, jobs: 0 }, job: Object.assign({}, JOBDEF, { lastShift: G.day }), tr: 'oficina', traits: [tk[R(tk.length)]], w: { slots: [], pts: 0 }, t: jobAbs(), life: { age: 20 + R(12), bd: 1 + R(14), last: 0, bdDay: 0, party: 0 } });
+  famSave(); return true;
+}
+{ const _sm7 = simMenu; simMenu = function () {
+  const m = _sm7(); if (VIS.st !== 'chat') return m; const n = NG.list[NG.cur], r = romOf(n.name), hearts = k => { for (let i = 0; i < k; i++) emit('heart', VIS.x + (i - k / 2) * .2, 2, VIS.z, 0, .5, 0, 1.5, .28); };
+  const add = (label, sub, run) => m.unshift({ label, sub, run: () => { run(); romSave(); } });
+  if (r.st === 'casados' && !r.moved) add('Pedir que se mude', 'vive contigo', () => { if (famAddSpouse(n)) { r.moved = true; say('¡Me mudo contigo!', 3); hearts(6); toast(n.name + ' se mudó a tu casa'); } });
+  if (r.st === 'pareja' && r.rom >= 85 && REL.pts >= 100) add('Proponer matrimonio', '💍', () => { r.st = 'casados'; G.money += 500; say('¡Sí, acepto!', 3); hearts(8); toast('¡Se casaron con ' + n.name + '! Regalo de boda +$500'); note(784, .06, .8); setTimeout(() => note(988, .06, .8), 200); });
+  if (r.st === 'none' && r.rom >= 50) add('Pedir salir', 'pareja', () => { if (REL.pts >= 30) { r.st = 'pareja'; say('¡Salgamos juntos!', 3); hearts(6); toast('Ahora eres pareja de ' + n.name); note(659.3, .06, .6); } else { say('Aún no nos conocemos bien…', 3); addRel(-3); } });
+  if (r.st === 'pareja') add('Terminar relación', '−20', () => { r.st = 'none'; r.rom = 0; addRel(-20); say('Es mejor así…', 3); toast('Terminaste con ' + n.name, true); });
+  if (r.rom >= 25) add('Dar un beso', '+8', () => { r.rom = Math.min(100, r.rom + 8); S.needs.fun = Math.min(100, S.needs.fun + 8); S.needs.social = Math.min(100, S.needs.social + 8); say('Mmm…', 2); hearts(5); });
+  add('Coquetear', '+romance', () => { if (REL.pts < 10 && r.rom < 10 && Math.random() < .5) { r.rom = Math.max(0, r.rom - 3); say('Qué atrevido…', 2.5); addRel(-2); } else { r.rom = Math.min(100, r.rom + 6); addRel(2); say('Eres encantador/a', 2.5); hearts(3); } });
+  return m; }; }
+{ const _rs8 = renderSkills; renderSkills = function () { _rs8(); const p = $('#skills'); if (!p || p.hidden) return;
+  const rows = NG.list.filter(n => romOf(n.name).rom > 0 || romOf(n.name).st !== 'none').map(n => { const r = romOf(n.name); return '<div class="wt"><i></i><b>' + n.name + '</b>&nbsp;· ' + (ROMST[r.st] || 'Romance') + ' ' + Math.round(r.rom) + '%' + (r.moved ? ' · vive contigo' : '') + '</div>'; }).join('');
+  p.insertAdjacentHTML('beforeend', '<h3 class="h2">Romance</h3>' + (rows || '<div class="wt"><i></i>Sin romances. Invita a un vecino y coquetea.</div>')); }; }
+
+/* ===== Deseo de vida ===== */
+const nbBest = () => NG.list.filter((n, i) => (i === NG.cur ? REL.pts : n.pts) >= 200).length;
+const LWS = {
+  chef: { t: 'Chef maestro', d: 'Cocina nivel 5', f: () => skLvl('cocina') / 5 }, musico: { t: 'Virtuoso', d: 'Música nivel 5', f: () => skLvl('musica') / 5 }, atleta: { t: 'Atleta', d: 'Ejercicio nivel 5', f: () => skLvl('ejercicio') / 5 },
+  genio: { t: 'Genio', d: 'Lógica nivel 5', f: () => skLvl('logica') / 5 }, artista: { t: 'Gran artista', d: 'Pintura nivel 5', f: () => skLvl('pintura') / 5 }, millo: { t: 'Millonario', d: 'Juntar $50.000', f: () => G.money / 50000 },
+  amigos: { t: 'Alma social', d: 'Ser mejor amigo de 2 vecinos', f: () => nbBest() / 2 }, amor: { t: 'Amor verdadero', d: 'Casarte con un vecino', f: () => Math.max(0, ...NG.list.map(n => { const r = romOf(n.name); return r.st === 'casados' ? 1 : r.st === 'pareja' ? .6 : r.rom / 200; })) },
+  jefe: { t: 'Gran jefe', d: 'Llegar al puesto más alto', f: () => jobLvl() / 4 },
+};
+const LW = { id: null, done: 0 }; try { Object.assign(LW, JSON.parse(localStorage.getItem('cdcLW') || '{}')); } catch (e) { /* sin guardado */ }
+if (!LWS[LW.id]) { const k = Object.keys(LWS); LW.id = k[Math.floor(Math.random() * k.length)]; }
+const lwSave = () => { try { localStorage.setItem('cdcLW', JSON.stringify(LW)); } catch (e) { /* nada */ } };
+{ const _rs9 = renderSkills; renderSkills = function () { _rs9(); const p = $('#skills'); if (!p || p.hidden) return; const w = LWS[LW.id], f = clamp(w.f(), 0, 1);
+  p.insertAdjacentHTML('beforeend', '<h3 class="h2">Deseo de vida <small>' + LW.done + ' logrados</small></h3><div class="wt"><i></i><b>' + w.t + '</b>&nbsp;· ' + w.d + '</div><div class="bar asp"><i style="width:' + Math.round(f * 100) + '%;background:#ffd23f"></i></div>'
+    + '<div class="mo" style="margin-top:6px">' + Object.keys(LWS).filter(k => k !== LW.id).map(k => '<span data-lw="' + k + '" style="cursor:pointer" title="Cambiar a: ' + LWS[k].d + '">' + LWS[k].t + '</span>').join('') + '</div>'
+    + '<h3 class="h2">Vida</h3><div class="wt"><i></i>' + stageOf(LIFE.age) + ' · ' + LIFE.age + ' años</div><div class="wt"><i></i>Despensa: ' + FOOD.n + ' porciones</div>'); }; }
+$('#skills').addEventListener('click', e => { const t = e.target.closest('[data-lw]'); if (!t) return; LW.id = t.dataset.lw; lwSave(); toast('Nuevo deseo de vida: ' + LWS[LW.id].t); renderSkills(); });
+
+/* ===== Reloj de sucesos (cada segundo) ===== */
+let lastAge = LIFE.age;
+setInterval(() => {
+  if (!G.started) return;
+  const el = $('#pantry'); if (el) { el.textContent = 'Despensa: ' + FOOD.n; el.style.color = FOOD.n < 2 ? '#ffb0a8' : '#d9f7c3'; }
+  if (!G.speed) return; const now = jobAbs();
+  if (GROC.atAbs && now >= GROC.atAbs) { GROC.atAbs = 0; foodAdd(10); toast('Llegaron los víveres: +10 porciones'); note(784, .06, .5); }
+  if (G.auto && FOOD.n < 2 && S.needs.hunger < 45 && !GROC.atAbs && G.money >= 60 && !JOB.atWork) orderGroceries();
+  if (ROM.day !== G.day) { ROM.day = G.day; for (const k in ROM.d) { const r = ROM.d[k]; r.rom = Math.max(r.st === 'casados' ? 60 : r.st === 'pareja' ? 30 : 0, r.rom - (r.st === 'none' ? 2 : 1)); } romSave(); }
+  if (LIFE.age !== lastAge) { const before = stageOf(lastAge); lastAge = LIFE.age; applyTraits(); if (stageOf(LIFE.age) !== before) toast('¡' + S.name + ' ahora es ' + stageOf(LIFE.age).toLowerCase() + '!'); }
+  const w = LWS[LW.id]; if (w && w.f() >= 1) { G.money += 5000; LW.done++; const old = LW.id, k = Object.keys(LWS).filter(x => x !== old); LW.id = k[Math.floor(Math.random() * k.length)]; lwSave();
+    toast('¡Deseo de vida cumplido: ' + w.t + '! +$5.000'); confetti(); note(784, .07, .8); setTimeout(() => note(988, .07, .9), 180); saveSoon(); }
+}, 1000);
+$('#money').insertAdjacentHTML('afterend', '<div id="pantry" title="Comida disponible en la nevera"></div>');
+document.head.insertAdjacentHTML('beforeend', '<style>#pantry{width:100%;text-align:right;font:400 13px var(--display);color:#d9f7c3;margin-top:2px}.slots{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;margin:8px 0}.slots b{font:400 14px var(--display);color:var(--navy)}.slots small{display:block;font:800 11px var(--body);color:#3a4f7a}</style>');
+
+/* ===== Vestuario: cambia de ropa según la actividad ===== */
+const OUTFITS = { sleep: { s: '#8fa8e0', p: '#5a6a9a' }, swim: { s: null, p: '#ff7a2a' }, sport: { s: '#2aa5a0', p: '#1c1c22' }, formal: { s: '#f2f2f2', p: '#2c3e50' }, towel: { s: '#ffffff', p: '#ffffff' } };
+function outfitKey() {
+  if (COM.on) return 'formal';
+  if ((S.state === 'do' || S.state === 'enter') && S.act) { const id = S.act.id;
+    if (id === 'sleep' || id === 'nap') return 'sleep'; if (id === 'swim' || id === 'jacuzzi' || id === 'bath') return 'swim'; if (id === 'shower') return 'towel';
+    if (['run', 'lift', 'box', 'jump', 'dancemusic'].includes(id)) return 'sport'; if (id === 'work') return 'formal'; }
+  return 'day';
+}
+let outfitK = 'day';
+dyn.push({ update() { if (!sim || !sim.shirt || !sim.shirt.color) return; const k = outfitKey(); if (k === outfitK) return; outfitK = k; const o = OUTFITS[k];
+  sim.shirt.color.set(o ? (o.s || SKINS[LOOK.skin]) : SHIRTS[LOOK.shirt]); sim.pants.color.set(o ? o.p : (PANTS[LOOK.pants] || PANTS[0])); } });
+
+/* ===== Música ambiental y lluvia ===== */
+const AMB = { t: 3, gain: null, noise: null };
+function ambInit() {
+  if (!AC || AMB.noise) return; const len = AC.sampleRate * 2, buf = AC.createBuffer(1, len, AC.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = AC.createBufferSource(); src.buffer = buf; src.loop = true; const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; f.Q.value = .6; const g = AC.createGain(); g.gain.value = 0;
+  src.connect(f); f.connect(g); g.connect(AC.destination); src.start(); AMB.gain = g; AMB.noise = src;
+}
+setInterval(() => {
+  if (!G.started) return;
+  try {
+    ambInit(); if (AMB.gain) AMB.gain.gain.setTargetAtTime(G.sound && WX.rain > .05 ? .045 * WX.rain : 0, AC.currentTime, .5);
+    if (!G.sound || !G.speed || !AC) return; AMB.t -= 1; if (AMB.t > 0) return; const build = G.mode === 'build'; AMB.t = build ? 2.2 + Math.random() * 1.4 : 4 + Math.random() * 3;
+    const sc = isNight ? [220, 261.6, 329.6, 392] : [261.6, 293.7, 329.6, 392, 440, 523.3], f = sc[Math.floor(Math.random() * sc.length)];
+    note(f, build ? .022 : .016, build ? 1.8 : 3.2, build ? 'triangle' : 'sine'); if (Math.random() < .5) setTimeout(() => note(f * 1.5, build ? .016 : .011, 2.6, 'sine'), 350);
+  } catch (e) { /* sin audio */ }
+}, 1000);
+
+/* ===== Ranuras de guardado, exportar e importar ===== */
+let restoring = false;
+{ const _sn = saveNow; saveNow = function () { if (!restoring) _sn(); }; }
+const saveKeys = () => Object.keys(localStorage).filter(k => k === 'casaDulceCasa1' || (k.startsWith('cdc') && !k.startsWith('cdcSlot')));
+function snapAll() {
+  try { saveNow(); FAM.list[FAM.cur] = famSnap(); famSave(); jobSave(); romSave(); lwSave(); } catch (e) { /* nada */ }
+  const data = {}; saveKeys().forEach(k => { data[k] = localStorage.getItem(k); }); return { v: 1, t: Date.now(), name: S.name, day: G.day, money: Math.floor(G.money), data };
+}
+function restoreAll(s) {
+  if (!s || !s.data) { toast('Archivo de guardado no válido', true); return; }
+  restoring = true; saveKeys().forEach(k => localStorage.removeItem(k)); for (const k in s.data) { if (k === 'casaDulceCasa1' || k.startsWith('cdc')) localStorage.setItem(k, s.data[k]); } toast('Cargando partida…'); setTimeout(() => location.reload(), 300);
+}
+const slotInfo = i => { try { return JSON.parse(localStorage.getItem('cdcSlot' + i) || 'null'); } catch (e) { return null; } };
+function renderSlots() {
+  const box = $('#slotBox'); if (!box) return;
+  box.innerHTML = [1, 2, 3].map(i => { const s = slotInfo(i); return '<div class="slots"><div><b>Ranura ' + i + '</b><small>' + (s ? s.name + ' · día ' + s.day + ' · $' + s.money.toLocaleString('es') : 'vacía') + '</small></div><button class="btn sm" data-sv="' + i + '">Guardar</button><button class="btn sm" data-ld="' + i + '"' + (s ? '' : ' disabled') + '>Cargar</button></div>'; }).join('')
+    + '<div style="display:flex;gap:6px"><button class="btn sm" id="slotExp">Exportar archivo</button><button class="btn sm" id="slotImp">Importar archivo</button><input type="file" id="slotFile" accept=".json,application/json" hidden></div>';
+}
+$('#help .btn#btnReset').parentElement.insertAdjacentHTML('beforebegin', '<h3 style="font-size:18px;margin:6px 0">Guardar partida</h3><div id="slotBox"></div>');
+$('#help').addEventListener('click', e => {
+  const sv = e.target.closest('[data-sv]'), ld = e.target.closest('[data-ld]');
+  if (sv) { try { localStorage.setItem('cdcSlot' + sv.dataset.sv, JSON.stringify(snapAll())); toast('Guardado en la ranura ' + sv.dataset.sv); } catch (err) { toast('No hay espacio para guardar', true); } renderSlots(); }
+  else if (ld) { const s = slotInfo(ld.dataset.ld); if (s) restoreAll(s); }
+  else if (e.target.id === 'slotExp') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(snapAll())], { type: 'application/json' })); a.download = 'pennywhistle-' + S.name + '-dia' + G.day + '.json'; document.body.appendChild(a); a.click(); a.remove(); }
+  else if (e.target.id === 'slotImp') $('#slotFile').click();
+});
+$('#help').addEventListener('change', e => { if (e.target.id !== 'slotFile' || !e.target.files[0]) return; const r = new FileReader(); r.onload = () => { try { restoreAll(JSON.parse(r.result)); } catch (err) { toast('Archivo de guardado no válido', true); } }; r.readAsText(e.target.files[0]); });
+$('#btnHelp').addEventListener('click', renderSlots); renderSlots();
+$('#help ul').insertAdjacentHTML('beforeend', '<li><b>Comida:</b> la nevera y la estufa gastan porciones de la despensa. Pide víveres por teléfono, ve a la tienda o cosecha tu huerto. Mejor cocina = comida más nutritiva.</li><li><b>Romance:</b> invita a un vecino y usa su menú (coquetear, besar, pedir salir, casarse, mudarse).</li><li><b>Ropa:</b> tu Sim se viste distinto para dormir, nadar, hacer ejercicio y trabajar. <b>Arcos y puertas</b> en Muros dividen la casa sin bloquear el paso.</li>');
 
 boot();
 
