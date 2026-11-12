@@ -267,7 +267,7 @@ body{font-synthesis:none}
 .clock .speeds{width:100%}.clock .sub{margin:0!important}.clock b{font-size:22px!important}
 .clock .money{width:100%;margin:3px 0 0!important;padding-top:3px!important;font-size:15px!important;text-align:right;border-top:2px solid rgba(14,40,96,.5)}
 .dock{padding:5px 7px!important;gap:6px!important}.dock .btn{padding:6px 11px;font-size:13px}
-#skills,#decor,#phone{position:absolute!important;right:max(12px,env(safe-area-inset-right,0px));bottom:68px;width:min(320px,calc(100vw - 24px))!important;max-height:calc(100% - 150px)!important;overflow:auto;box-sizing:border-box;z-index:5}
+#skills,#decor,#phone,#city{position:absolute!important;right:max(12px,env(safe-area-inset-right,0px));bottom:68px;width:min(320px,calc(100vw - 24px))!important;max-height:calc(100% - 150px)!important;overflow:auto;box-sizing:border-box;z-index:5}
 #moreMenu{position:absolute;left:50%;bottom:68px;transform:translateX(-50%);display:grid;grid-template-columns:repeat(2,minmax(110px,1fr));gap:6px;padding:8px;width:min(300px,calc(100vw - 24px));box-sizing:border-box;z-index:6}
 #moreMenu[hidden]{display:none}#moreMenu .btn{text-align:center}
 
@@ -385,6 +385,30 @@ body{font-synthesis:none}
   </div>
 </div>
 </div>
+<style id="fixes">
+/* ===== Arreglos de pantalla: altura real (dvh), paneles sin solaparse, tarjetas completas ===== */
+html,body{height:100%;height:100dvh}
+#stage{position:fixed;inset:0;height:auto}
+#skills,#decor,#phone{position:absolute!important;right:max(12px,env(safe-area-inset-right,0px));left:auto!important;
+  bottom:calc(var(--bh,60px) + 12px)!important;top:auto!important;width:min(320px,calc(100vw - 24px))!important;
+  max-height:max(140px,calc(100% - var(--th,110px) - var(--bh,60px) - 28px))!important;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;z-index:7}
+#phone .btn,#city .btn{display:flex;align-items:center;gap:8px;white-space:normal;text-align:left;line-height:1.2}
+#phone .btn svg,#phone .btn .ic{display:inline-block!important;flex:none;width:18px;height:18px;margin:0}
+.cat{display:flex;flex-direction:column;max-height:min(46dvh,calc(100dvh - var(--th,110px) - 76px))}
+.cat .items{flex:1 1 auto;min-height:0;overflow-y:hidden;padding-bottom:10px}
+.item{flex-shrink:0}
+@media (max-height:560px){
+  #phone,#skills,#decor{padding:8px 10px!important}
+  #phone h3{font-size:18px!important}
+  .cat{padding:6px 8px}.item{flex-basis:74px;padding:4px}.item img{width:44px;height:44px}.item b{font-size:11px}
+  .item span{font-size:12px;padding:0 7px}
+}
+#city{background:linear-gradient(#f9f3e0,#e8dfc2);color:#14284f;text-shadow:none;padding:12px 14px}
+#city h3{margin:0 0 6px;font:400 22px var(--display);color:#14284f}
+#city .row{display:flex;gap:6px;margin-bottom:8px}#city .row .btn{flex:1;justify-content:center}
+#city .pl{flex-direction:column;align-items:flex-start;gap:2px;margin-top:6px;width:100%}
+#city .pl b{font:400 15px var(--display)}#city .pl small{font-weight:800;color:#3a4f7a}#city .pl em{font-style:normal;font-size:11px;color:#b8431f;font-weight:800}
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 'use strict';
@@ -3685,6 +3709,204 @@ setInterval(() => {
 }
 /* Puerta de pruebas (también útil para depurar): window.CDC */
 window.CDC = { G, S, JOB, BILLS, VIS, REL, PROG, DELIVERY, payBills, goToWork, returnFromWork, billArrive, renderPhone };
+/* ===== Medidas del HUD: los paneles flotantes se acomodan solos ===== */
+{ const root = document.documentElement.style;
+  const measure = () => { const r = $('.col.right'), b = $('#hud .bottom'), st = $('#stage').getBoundingClientRect();
+    if (r) root.setProperty('--th', Math.ceil(r.getBoundingClientRect().bottom - st.top) + 'px');
+    if (b) root.setProperty('--bh', Math.ceil(st.bottom - b.getBoundingClientRect().top) + 'px'); };
+  addEventListener('resize', measure); addEventListener('orientationchange', () => setTimeout(measure, 250));
+  if (window.ResizeObserver) { const ro = new ResizeObserver(measure); ro.observe($('#hud .bottom')); ro.observe($('.col.right')); }
+  setInterval(measure, 700); measure(); }
+
+/* ===== Ánimo con causas: cada estado muestra cuánto suma o resta ===== */
+moodlets = function () {
+  const n = S.needs, m = [], add = (t, v) => m.push([t, v]);
+  if (n.hunger > 80) add('Barriga llena', 8); if (n.hunger < 25) add('Mucha hambre', -15);
+  if (n.energy > 80) add('Descansado', 8); if (n.energy < 25) add('Agotado', -15);
+  if (n.bladder < 25) add('Urgencia', -12); if (n.hygiene > 85) add('Fresco', 6); if (n.hygiene < 25) add('Sucio', -10);
+  if (n.fun > 75) add('Entretenido', 8); if (n.fun < 25) add('Aburrido', -10);
+  if (BILLS.list.some(b => G.day > b.dueDay)) add('Facturas vencidas', -12);
+  if (FAINT.on) add('Desmayado', -20); if ((JOB.miss || 0) > 0) add('Faltó al trabajo', -8);
+  return m.length ? m.map(x => `<span class="mo-${x[1] > 0 ? 1 : 0}">${x[0]} ${x[1] > 0 ? '+' : ''}${x[1]}</span>`).join('') : '<span>Sin cambios</span>';
+};
+
+/* ===== Consecuencias: desmayos, accidentes y faltas al trabajo ===== */
+const FAINT = { on: false, until: 0 };
+function faintStart(why) {
+  stopSimNow(); S.bubble = null; S.state = 'away'; S.label = 'Desmayado'; FAINT.on = true; FAINT.until = jobAbs() + 120;
+  sim.root.rotation.z = Math.PI / 2; CAM.follow = true;
+  toast('¡Se desmayó ' + why + '! Despertará en ~2 h', true); note(196, .08, .8, 'sawtooth');
+}
+function faintEnd() {
+  FAINT.on = false; sim.root.rotation.z = 0; S.state = 'idle'; S.label = '';
+  S.needs.energy = Math.max(S.needs.energy, 45); S.needs.hunger = Math.max(S.needs.hunger, 25);
+  say('Uf… ¿qué pasó?'); toast('Se despertó. Cuida mejor sus necesidades');
+}
+{ const _rw = returnFromWork; returnFromWork = function () { JOB.miss = 0; _rw(); }; }
+setInterval(() => {
+  if (!G.started || !G.speed) return;
+  if (FAINT.on) { if (jobAbs() >= FAINT.until) faintEnd(); return; }
+  if (JOB.atWork || S.state === 'do' || S.state === 'away') return;
+  if (S.needs.energy <= 1) faintStart('de cansancio'); else if (S.needs.hunger <= 1) faintStart('de hambre');
+  else if (S.needs.bladder <= 1) { S.needs.bladder = 70; S.needs.hygiene = clamp(S.needs.hygiene - 30, 0, 100); S.needs.fun = clamp(S.needs.fun - 10, 0, 100);
+    say('¡Ay no! ¡No llegué!'); toast('Tuvo un accidente: higiene y diversión bajan', true); }
+  if (isWorkday() && G.min >= SHIFT_END && JOB.lastShift !== G.day && JOB.skipDay !== G.day && JOB.chk !== G.day) {
+    JOB.chk = G.day; JOB.miss = (JOB.miss || 0) + 1; jobSave();
+    if (JOB.miss >= 3) { PROG.jobs = 0; JOB.miss = 0; jobSave(); try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ }
+      toast('¡Te despidieron por faltar! Vuelves a empezar', true); }
+    else toast('Faltaste al trabajo (' + JOB.miss + '/3). Con 3 faltas te despiden', true);
+  }
+}, 700);
+
+/* ===== Carreras: elige un camino ligado a tus habilidades (más sueldo con más nivel) ===== */
+const TRACKS = {
+  oficina: { n: 'Oficina', names: CAREER.slice(), sk: null },
+  chef:    { n: 'Cocina', names: ['Pinche', 'Cocinero', 'Sous chef', 'Chef', 'Chef estrella'], sk: 'cocina' },
+  musico:  { n: 'Música', names: ['Callejero', 'Telonero', 'Banda local', 'Solista', 'Estrella pop'], sk: 'musica' },
+  artista: { n: 'Arte', names: ['Aprendiz', 'Ilustrador', 'Pintor', 'Galerista', 'Maestro'], sk: 'pintura' },
+};
+const TR = { id: 'oficina' }; try { Object.assign(TR, JSON.parse(localStorage.getItem('cdcTrack') || '{}')); } catch (e) { /* sin guardado */ }
+if (!TRACKS[TR.id]) TR.id = 'oficina';
+const applyTrack = () => CAREER.splice(0, 5, ...TRACKS[TR.id].names);
+applyTrack();
+{ const _rw2 = returnFromWork; returnFromWork = function () {
+    const m0 = G.money; _rw2(); const sk = TRACKS[TR.id].sk, bonus = sk ? Math.round((G.money - m0) * .07 * skLvl(sk)) : 0;
+    if (bonus > 0) { G.money += bonus; toast('Bono de ' + TRACKS[TR.id].n + ' por tu habilidad: +$' + bonus); } }; }
+{ const _rp2 = renderPhone; renderPhone = function () { _rp2(); const p = $('#phone'); if (!p || p.hidden) return;
+    p.insertAdjacentHTML('beforeend', '<div style="font:400 15px var(--display);margin:10px 0 4px;color:#14284f">Carrera</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+      + Object.keys(TRACKS).map(k => { const t = TRACKS[k], lv = t.sk ? skLvl(t.sk) : 9, lock = lv < 1;
+        return '<button class="btn' + (TR.id === k ? ' on' : '') + '" data-career="' + k + '" style="justify-content:center;' + (lock ? 'opacity:.55' : '') + '">' + t.n + (lock ? ' · nivel 1' : '') + '</button>'; }).join('') + '</div>'); }; }
+$('#phone').addEventListener('click', e => { const t = e.target.closest('[data-career]'); if (!t) return; const k = t.dataset.career, tr = TRACKS[k];
+  if (tr.sk && skLvl(tr.sk) < 1) { toast('Necesitas nivel 1 de ' + SKILLS[tr.sk], true); return; }
+  if (JOB.atWork) { toast('Cámbiala al volver del trabajo', true); return; }
+  TR.id = k; applyTrack(); PROG.jobs = 0; try { localStorage.setItem('cdcTrack', JSON.stringify(TR)); localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ }
+  toast('Nueva carrera: ' + tr.n + ' (empiezas como ' + CAREER[0] + ')'); note(523.3, .06, .5); renderPhone(); });
+
+{
+/* ===== Ciudad: avenida con comercios, vecinos, parque, tráfico y vida nocturna ===== */
+const TOWN = new THREE.Group(); scene.add(TOWN);
+const winMat = new THREE.MeshStandardMaterial({ color: 0x9fd4f5, emissive: 0xffd27a, emissiveIntensity: 0, roughness: .2, metalness: .2 });
+const lampMat = new THREE.MeshStandardMaterial({ color: 0xfff1b8, emissive: 0xffe08a, emissiveIntensity: 0 });
+const SIGNS = [];
+function signMat(txt, bg) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d');
+  const draw = () => { x.fillStyle = bg; x.fillRect(0, 0, 512, 128); x.strokeStyle = '#fff'; x.lineWidth = 8; x.strokeRect(6, 6, 500, 116);
+    x.fillStyle = '#fff'; x.font = '60px "Lilita One","Trebuchet MS",sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 256, 68); };
+  draw(); const t = new THREE.CanvasTexture(c); SIGNS.push(() => { draw(); t.needsUpdate = true; }); return new THREE.MeshBasicMaterial({ map: t });
+}
+if (document.fonts) document.fonts.ready.then(() => SIGNS.forEach(f => f()));
+var PLACES = {
+  oficina: { n: 'Oficina Central', cx: -15, w: 14, d: 12, h: 14, col: 0x8fa6c4, sg: '#2a4f8f', track: 'oficina' },
+  rest: { n: 'La Cuchara', cx: 0, w: 12, d: 10, h: 7, col: 0xe8a04a, sg: '#b8431f', track: 'chef', out: { t: 'Cenar fuera', cost: 22, min: 60, fx: { hunger: 45, fun: 12 } } },
+  gal: { n: 'Galería Arte', cx: 14, w: 12, d: 10, h: 8, col: 0xd9c9e8, sg: '#6a3fa0', track: 'artista', out: { t: 'Visitar la galería', cost: 10, min: 60, fx: { fun: 30 }, xp: ['pintura', 5] } },
+  aud: { n: 'Auditorio', cx: 29, w: 14, d: 12, h: 9, col: 0xc0504d, sg: '#8a1f2f', track: 'musico', out: { t: 'Ir a un concierto', cost: 20, min: 90, fx: { fun: 42, energy: -6 }, xp: ['musica', 5] } },
+  gym: { n: 'Gimnasio', cx: 44, w: 12, d: 10, h: 6, col: 0x6fb7a8, sg: '#1f6a5a', out: { t: 'Hacer ejercicio', cost: 15, min: 60, fx: { fun: 15, energy: -20, hygiene: -18, hunger: -10 }, xp: ['ejercicio', 6] } },
+  park: { n: 'Parque', cx: 64, out: { t: 'Pasear por el parque', cost: 0, min: 90, fx: { fun: 35, energy: -8, hygiene: -5 } } },
+};
+function building(p) {
+  const g = new THREE.Group(); g.position.set(p.cx, 0, 48 + p.d / 2); const { w, d, h } = p;
+  bx(g, w, h, d, p.col); bx(g, w + .6, .5, d + .6, 0xe8e2d4, 0, h); if (p.n === 'Auditorio') sp(g, w * .42, 0xa83a3a, 0, h + .5, 0, { sy: .4 });
+  bx(g, 2, 2.4, .16, 0x5a3a22, 0, 0, -d / 2 - .06);
+  for (let y = 4.6; y + 1.7 < h; y += 2.8) for (let x = -w / 2 + 1.8; x < w / 2 - 1; x += 3.2) bx(g, 1.8, 1.6, .12, 0, x, y, -d / 2 - .05, { mat: winMat });
+  for (const x of [-w / 4 - 1, w / 4 + 1]) bx(g, 2.2, 1.5, .12, 0, x, .9, -d / 2 - .05, { mat: winMat });
+  const sg = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w - 1.5, 8), 2), signMat(p.n, p.sg)); sg.rotation.y = Math.PI; sg.position.set(0, 3.5, -d / 2 - .14); g.add(sg);
+  g.traverse(m => { m.castShadow = false; m.receiveShadow = false; }); TOWN.add(g);
+}
+Object.values(PLACES).forEach(p => { if (p.w) building(p); });
+function tree(x, z, k = 1) { const g = new THREE.Group(); g.position.set(x, 0, z); cy(g, .18 * k, .24 * k, 1.6 * k, 0x7b5133); sp(g, 1.1 * k, 0x3f9a4a, 0, 2.3 * k, 0); sp(g, .8 * k, 0x56b85a, .5 * k, 3 * k, .2 * k); g.traverse(m => { m.castShadow = false; }); TOWN.add(g); }
+function lamp(x, z) { const g = new THREE.Group(); g.position.set(x, 0, z); cy(g, .06, .08, 4, 0x3a3f4a); sp(g, .28, 0, 0, 4.1, 0, { mat: lampMat }); TOWN.add(g); }
+{ // acera sur, parque, árboles y farolas
+  const sw = new THREE.Mesh(new THREE.BoxGeometry(260, .14, 2.4), M(0xc9c4b8, 1)); sw.position.set(20, .05, 45.2); TOWN.add(sw);
+  const pk = new THREE.Mesh(new THREE.BoxGeometry(24, .05, 16), M(0x7fc765, 1)); pk.position.set(64, .02, 56); TOWN.add(pk);
+  const pond = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.6, .08, 24), new THREE.MeshStandardMaterial({ color: 0x5fb8e8, roughness: .1, metalness: .2 })); pond.position.set(66, .07, 56); TOWN.add(pond);
+  const path = new THREE.Mesh(new THREE.BoxGeometry(2, .06, 10), M(0xd9cdb0, 1)); path.position.set(60, .06, 51); TOWN.add(path);
+  for (const [x, z] of [[55, 52], [55, 60], [62, 62], [72, 52], [73, 61], [60, 57]]) tree(x, z, 1 + (x % 3) * .1);
+  for (const x of [58, 62, 70]) { const b = new THREE.Group(); b.position.set(x, 0, 49.2); bx(b, 1.6, .12, .5, WOOD, 0, .45, 0); bx(b, 1.6, .5, .08, WOOD_D, 0, .55, .22); TOWN.add(b); }
+  for (const x of [-7, 7, 21, 37, 51]) tree(x, 46.9, .9);
+  for (let x = -28; x <= 80; x += 18) lamp(x, 44.4);
+  const HC = [[-14, 0xe8d6a8], [-30, 0xb8d4c0], [52, 0xe8b8a8], [70, 0xb8c4e8]];
+  for (const [cx, col] of HC) { const g = new THREE.Group(); g.position.set(cx, 0, 22);
+    bx(g, 9, 4.5, 7, col); const roof = new THREE.Mesh(new THREE.ConeGeometry(6.6, 3, 4), M(0xa0462e, .9)); roof.rotation.y = Math.PI / 4; roof.scale.z = .78; roof.position.y = 6; g.add(roof);
+    bx(g, 1.4, 2.2, .14, 0x5a3a22, 0, 0, 3.55); for (const x of [-3, 3]) bx(g, 1.5, 1.4, .12, 0, x, 1.4, 3.55, { mat: winMat }); bx(g, 3, .08, 6, 0xd9cdb0, 0, 0, 6.4);
+    g.traverse(m => { m.castShadow = false; }); TOWN.add(g); tree(cx + 6.5, 28, .9); }
+}
+const CARS = [];
+function makeCar(col, lane, dir, x) { const g = new THREE.Group(); bx(g, 4.2, .7, 1.9, col, 0, .35, 0); bx(g, 2.2, .65, 1.7, 0xdfe9f2, -.2, 1, 0);
+  for (const a of [-1.4, 1.4]) for (const b of [-.95, .95]) cy(g, .38, .38, .3, 0x1c1c22, a, .05, b, { rx: Math.PI / 2, seg: 10 });
+  g.position.set(x, 0, lane); g.rotation.y = dir > 0 ? 0 : Math.PI; g.traverse(m => { m.castShadow = false; }); TOWN.add(g); CARS.push({ g, dir, v: 5 + Math.random() * 3 }); }
+[[0xe8564a, 36.4, 1, -60], [0x3a8fe0, 36.4, 1, 30], [0xf2b134, 41.6, -1, 90], [0x59b86a, 41.6, -1, -20], [0x8a5ac8, 36.4, 1, 110]].forEach(a => makeCar(...a));
+{ let last = performance.now(); (function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, .1); last = t; const sp = [0, 1, 2.2, 4][G.speed] || 0;
+    for (const c of CARS) { c.g.position.x += c.dir * c.v * dt * sp; if (c.g.position.x > 150) c.g.position.x = -110; if (c.g.position.x < -110) c.g.position.x = 150; } })(last); }
+setInterval(() => { const h = (G.min / 60) % 24, night = h >= 18 || h < 6; winMat.emissiveIntensity = night ? .9 : 0; lampMat.emissiveIntensity = night ? 1.3 : 0; }, 2000);
+
+/* ---- Salidas: el Sim va a un lugar de la ciudad y vuelve con los efectos ---- */
+const OUT = { on: false, until: 0, k: null };
+function goOut(k) {
+  const p = PLACES[k], o = p.out;
+  if (JOB.atWork || FAINT.on || OUT.on || COM.on || S.state === 'away') { toast('Ahora no puedes salir', true); return; }
+  if (G.money < o.cost) { toast('No tienes $ suficientes', true); return; }
+  if (isWorkday() && JOB.skipDay !== G.day && G.min + o.min > SHIFT_START && G.min < SHIFT_END) { toast('No da tiempo: tienes que ir al trabajo', true); return; }
+  stopSimNow(); S.bubble = null; G.money -= o.cost; OUT.on = true; OUT.k = k; OUT.until = jobAbs() + o.min;
+  sim.root.visible = false; S.state = 'away'; S.label = p.n; CAM.follow = false; Object.assign(CAM.goal, { tx: p.cx, tz: 54, pitch: .8, dist: Math.max(30, Math.min(CAM.goal.dist, 48)) });
+  toast(o.t + ' · vuelve en ' + o.min + ' min'); note(523.3, .05, .4); saveSoon();
+}
+function outEnd() {
+  const o = PLACES[OUT.k].out; OUT.on = false;
+  for (const k in o.fx) S.needs[k] = clamp(S.needs[k] + o.fx[k], 0, 100);
+  if (o.xp) { PROG.xp[o.xp[0]] = (PROG.xp[o.xp[0]] || 0) + o.xp[1]; try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ } }
+  S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
+  camHome(); say('¡Qué buen rato!'); toast('De vuelta en casa · ' + o.t + ' ✔'); note(659.3, .06, .5); saveSoon();
+}
+{ const _gw = goToWork; goToWork = function () { if (FAINT.on) { FAINT.on = false; sim.root.rotation.z = 0; } OUT.on = false; _gw(); }; }
+setInterval(() => { if (G.started && G.speed && OUT.on && jobAbs() >= OUT.until) outEnd(); }, 700);
+
+/* ---- Panel Ciudad ---- */
+function renderCity() {
+  const p = $('#city'); if (!p || p.hidden) return;
+  p.innerHTML = '<h3>Ciudad</h3><div class="row"><button class="btn" data-v="view">Ver ciudad</button><button class="btn" data-v="home">Mi casa</button></div>'
+    + Object.keys(PLACES).map(k => { const q = PLACES[k], o = q.out, mine = q.track && q.track === TR.id;
+      return '<button class="btn pl" data-go="' + k + '"><b>' + q.n + '</b><small>' + o.t + ' · ' + (o.cost ? '$' + o.cost : 'gratis') + ' · ' + o.min + ' min</small>' + (mine ? '<em>★ Aquí trabajas</em>' : '') + '</button>'; }).join('')
+    + '<div style="margin-top:8px;font-weight:800;font-size:12px;color:#3a4f7a">Tu trabajo: ' + (Object.values(PLACES).find(q => q.track === TR.id) || {}).n + '</div>';
+}
+{ const p = document.createElement('div'); p.id = 'city'; p.className = 'panel'; p.hidden = true; $('#hud .bottom').insertBefore(p, $('#hud .bottom .dock'));
+  const b = document.createElement('button'); b.className = 'btn'; b.id = 'btnCity'; b.textContent = 'Ciudad'; ($('#moreMenu') || $('#hud')).appendChild(b);
+  const others = ['skills', 'decor', 'phone'];
+  b.addEventListener('click', () => { p.hidden = !p.hidden; b.classList.toggle('on', !p.hidden);
+    if (!p.hidden) { others.forEach(id => { const o = $('#' + id); if (o) o.hidden = true; }); renderCity(); }
+    const m = $('#moreMenu'); if (m) { m.hidden = true; const mb = $('#btnMore'); if (mb) mb.classList.remove('on'); } });
+  others.forEach(id => { const ob = $('#btn' + id[0].toUpperCase() + id.slice(1)); if (ob) ob.addEventListener('click', () => { p.hidden = true; b.classList.remove('on'); }, true); });
+  p.addEventListener('click', e => { const t = e.target.closest('[data-go],[data-v]'); if (!t) return;
+    if (t.dataset.v === 'view') { CAM.follow = false; Object.assign(CAM.goal, { tx: 26, tz: 46, pitch: .72, dist: 88 }); }
+    else if (t.dataset.v === 'home') { camHome(); } else { goOut(t.dataset.go); renderCity(); } });
+  setInterval(renderCity, 3000); }
+
+}
+/* ===== Trayecto: el Sim camina de casa al trabajo (cruzando por el paso de peatones) y regresa ===== */
+const COM = { on: false, path: [], pi: 0, mode: '' };
+for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.6, .02, .55), M(0xf4f1e8, 1)); m.position.set(22.5, .06, 34.5 + i * 1.1); scene.add(m); }
+const workPlace = () => Object.values(PLACES).find(q => q.track === TR.id);
+function comStart(mode, p) {
+  const c = Math.floor(p.cx), to = [[22, 27], [22, 29], [22, 33], [22, 45], [c, 45], [c, 47]];
+  COM.path = mode === 'work' ? to : to.slice().reverse(); COM.pi = 1; COM.mode = mode; COM.on = true;
+  if (mode === 'home') { S.pos.x = c + .5; S.pos.z = 47.5; S.face = 0; S.y = 0; }
+  sim.root.visible = true; S.state = 'away'; S.label = mode === 'work' ? 'Yendo al trabajo' : 'Volviendo a casa'; S.queue.length = 0; CAM.follow = true;
+}
+function comEnd() {
+  COM.on = false; CAM.follow = false;
+  if (COM.mode === 'work') { sim.root.visible = false; S.state = 'away'; S.label = 'En el trabajo'; }
+  else { S.state = 'idle'; S.label = ''; S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; }
+  camHome();
+}
+{ const _ar = arrive; arrive = function () { if (COM.on) return comEnd(); _ar(); }; }
+{ const _us = updateSim; updateSim = function (dt) {
+    if (!COM.on) return _us(dt);
+    S.state = 'walk'; S.path = COM.path; S.pi = COM.pi; S.queue.length = 0; sim.root.visible = true; _us(dt);
+    if (COM.on) { COM.pi = S.pi; S.state = 'away'; sim.root.visible = true; } }; }
+{ const _g3 = goToWork; goToWork = function () { _g3(); const p = workPlace(); if (p) comStart('work', p); }; }
+{ const _r3 = returnFromWork; returnFromWork = function () {
+    if (COM.on) { COM.on = false; return _r3(); }
+    _r3(); const p = workPlace(); if (p) comStart('home', p); }; }
+
 boot();
 
 
