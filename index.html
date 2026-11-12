@@ -3788,10 +3788,11 @@ $('#phone').addEventListener('click', e => { const t = e.target.closest('[data-c
   TR.id = k; applyTrack(); PROG.jobs = 0; try { localStorage.setItem('cdcTrack', JSON.stringify(TR)); localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ }
   toast('Nueva carrera: ' + tr.n + ' (empiezas como ' + CAREER[0] + ')'); note(523.3, .06, .5); renderPhone(); });
 
-/* COM es GLOBAL y vive aquí, fuera del bloque de la Ciudad: lo usan el bucle
-   de coches, el trayecto al trabajo (comStart/comEnd) y updateSim, que viven
-   fuera de ese bloque. Si se declara dentro, queda atrapado ahí y todo lo
-   demás ve "COM is not defined" en cada cuadro. */
+/* COM es GLOBAL y vive aquí, antes del bloque de la Ciudad: el bucle de los
+   coches (dentro de la Ciudad) lo usa en su primera vuelta, y también lo usan
+   el trayecto al trabajo y updateSim, que viven fuera del bloque. Si se
+   declara después o dentro del bloque, el juego se queda en "Cargando…"
+   con "Cannot access 'COM' before initialization". */
 const COM = { on: false, path: [], pi: 0, mode: '' };
 {
 /* ===== Ciudad: avenida con comercios, vecinos, parque, tráfico y vida nocturna ===== */
@@ -3848,7 +3849,6 @@ function makeCar(col, lane, dir, x) { const g = new THREE.Group(); bx(g, 4.2, .7
   for (const a of [-1.4, 1.4]) for (const b of [-.95, .95]) cy(g, .38, .38, .3, 0x1c1c22, a, .05, b, { rx: Math.PI / 2, seg: 10 });
   g.position.set(x, 0, lane); g.rotation.y = dir > 0 ? 0 : Math.PI; g.traverse(m => { m.castShadow = false; }); TOWN.add(g); CARS.push({ g, dir, v: 5 + Math.random() * 3 }); }
 [[0xe8564a, 36.4, 1, -60], [0x3a8fe0, 36.4, 1, 30], [0xf2b134, 41.6, -1, 90], [0x59b86a, 41.6, -1, -20], [0x8a5ac8, 36.4, 1, 110]].forEach(a => makeCar(...a));
-/* COM vive ARRIBA, fuera del bloque de la Ciudad (ver nota ahí). */
 { let last = performance.now(); (function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, .1); last = t; const sp = [0, 1, 2.2, 4][G.speed] || 0;
     const onRoad = COM.on && S.pos.z > 33 && S.pos.z < 45 && Math.abs(S.pos.x - 22.5) < 3;
     for (const c of CARS) { const ahead = (22.5 - c.g.position.x) * c.dir; if (onRoad && ahead > 1.5 && ahead < 9) continue; c.g.position.x += c.dir * c.v * dt * sp; if (c.g.position.x > 150) c.g.position.x = -110; if (c.g.position.x < -110) c.g.position.x = 150; } })(last); }
@@ -3897,7 +3897,7 @@ function renderCity() {
 
 }
 /* ===== Trayecto: el Sim camina de casa al trabajo (cruzando por el paso de peatones) y regresa ===== */
-/* COM ya vive arriba, antes del bucle de coches (ver nota ahí). */
+/* COM vive ARRIBA, antes del bloque de la Ciudad (ver nota ahí). */
 for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.6, .02, .55), M(0xf4f1e8, 1)); m.position.set(22.5, .06, 34.5 + i * 1.1); scene.add(m); }
 const workPlace = () => Object.values(PLACES).find(q => q.track === TR.id);
 function comStart(mode, p) {
@@ -4016,7 +4016,7 @@ function famAdd() {
   if (famBusy()) { toast('Espera a que ' + S.name + ' termine lo que hace', true); return; }
   stopSimNow(); FAM.list[FAM.cur] = famSnap();
   const R = n => Math.floor(Math.random() * n), g = R(2) ? 'm' : 'f', names = FNAMES[g].filter(n => !FAM.list.some(m => m.name === n));
-  const look = { skin: R(SKINS.length), hair: R(HAIRS.length), shirt: R(SHIRTS.length), pants: R(PANTS.length), gender: g, style: 'long' }; Object.assign(LOOK, look); const st = stylesFor(); look.style = st[R(st.length)][0]; look.acc = 'none';
+  const look = { skin: R(SKINS.length), hair: R(HAIRS.length), shirt: R(SHIRTS.length), pants: R(PANTS.length), gender: g, style: 'long' }; Object.assign(LOOK, look); const st = stylesFor(); look.style = st[R(st.length)][0]; look.acc = 'none'; Object.assign(look, { face: ['oval', 'round', 'square'][R(3)], brow: 'normal', nose: ['small', 'mid', 'big'][R(3)], beard: 'none', marks: 'none', ears: 'none', build: ['slim', 'avg', 'broad'][R(3)], height: 'mid', eye: R(6), lips: R(6) });
   const tk = Object.keys(TRAITS.defs), m = { name: names[R(names.length)] || 'Sim', look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70 }, pos: { x: 22.5, z: 24.4 },
     prog: { xp: {}, jobs: 0 }, job: Object.assign({}, JOBDEF, { lastShift: G.day }), tr: 'oficina', traits: [tk[R(tk.length)]], w: { slots: [], pts: 0 }, t: jobAbs(), life: { age: 18 + R(10), bd: 1 + R(14), last: 0, bdDay: 0, party: 0 } };
   FAM.list.push(m); FAM.cur = FAM.list.length - 1; famLoad(m); famSave(); camHome();
@@ -4098,7 +4098,7 @@ function ngLook(n) {
   g.traverse(o => { if (!o.isMesh) return; const h = o.material.color.getHex(); for (const k of ['shirt', 'skin', 'hair']) if (h === c[k]) { o.material = M(n[k], .8); break; } });
   g.userData.cur = { shirt: n.shirt, skin: n.skin, hair: n.hair };
 }
-function ngPick(i) { if (i === NG.cur || VIS.st !== 'idle' && i !== NG.cur) { if (i === NG.cur) return; } NG.list[NG.cur].pts = REL.pts; NG.cur = i; REL.name = NG.list[i].name; REL.pts = NG.list[i].pts; ngLook(NG.list[i]); ngSave(); }
+function ngPick(i) { if (i === NG.cur) return; NG.list[NG.cur].pts = REL.pts; NG.cur = i; REL.name = NG.list[i].name; REL.pts = NG.list[i].pts; ngLook(NG.list[i]); ngSave(); }
 ngLook(NG.list[NG.cur]);
 { let prev = 'idle'; setInterval(() => { // visitas espontáneas: llega un vecino al azar
     if (prev === 'idle' && VIS.st !== 'idle' && !NG.invited) ngPick(Math.floor(Math.random() * 4)); if (VIS.st === 'idle') NG.invited = false; prev = VIS.st; }, 250); }
@@ -4116,6 +4116,137 @@ $('#phone').addEventListener('click', e => { const t = e.target.closest('[data-n
 { const _rs6 = renderSkills; renderSkills = function () { _rs6(); const p = $('#skills'); if (!p || p.hidden) return;
     p.insertAdjacentHTML('beforeend', '<h3 class="h2">Vecindario</h3>' + NG.list.map((n, i) => { const pts = i === NG.cur ? REL.pts : n.pts, l = RT.filter(t => pts >= t).length;
       return '<div class="wt"><i></i><b>' + n.name + '</b>&nbsp;· ' + RLN[l] + '</div>'; }).join('')); }; }
+
+/* ===== Personaje v2: cabeza modelada (cráneo, mandíbula, nariz, ojos con párpados, labios, orejas), pelo ajustado al cráneo y más opciones ===== */
+const FACES = [['oval', 'Ovalada'], ['round', 'Redonda'], ['square', 'Cuadrada']], EYES = ['#3f86d0', '#5a3a1f', '#3a8a4a', '#7a7f86', '#2a2a30', '#8a5ac8'], LIPS = ['#c4485a', '#b8656a', '#d96a5a', '#8a3a4a', '#e8909a', '#6a2a35'];
+const BROWS = [['thin', 'Finas'], ['normal', 'Normales'], ['thick', 'Gruesas']], NOSES = [['small', 'Pequeña'], ['mid', 'Media'], ['big', 'Grande']];
+const BEARDS = [['none', 'Sin barba'], ['stubble', 'Barba corta'], ['mustache', 'Bigote'], ['goatee', 'Perilla'], ['beard', 'Barba']], MARKS = [['none', 'Ninguna'], ['freckles', 'Pecas'], ['mole', 'Lunar'], ['blush', 'Rubor']];
+const EARS = [['none', 'Sin aretes'], ['studs', 'Botones'], ['hoops', 'Aros']], BUILDS = [['slim', 'Delgado'], ['avg', 'Normal'], ['broad', 'Robusto']], HEIGHTS = [['short', 'Bajo'], ['mid', 'Medio'], ['tall', 'Alto']];
+{ const D = { face: 'oval', brow: 'normal', nose: 'mid', beard: 'none', marks: 'none', ears: 'none', build: 'avg', height: 'mid', lips: 0 }; for (const k in D) if (LOOK[k] === undefined) LOOK[k] = D[k]; if (LOOK.eye === undefined) LOOK.eye = LOOK.skin < 2 ? 0 : 1; }
+STYLES.push(['buzz', 'Rapado', 'mf'], ['sidepart', 'Raya al lado', 'm'], ['curly', 'Rizado', 'mf'], ['wavy', 'Ondulado', 'f'], ['pixie', 'Pixie', 'f'], ['twin', 'Dos coletas', 'f']);
+function premiumHead() {
+  const h = sim.head, male = LOOK.gender === 'm', sk = sim.skin, hm = sim.hair; hm.side = THREE.DoubleSide;
+  while (h.children.length) { const c = h.children[0]; h.remove(c); if (c.geometry) c.geometry.dispose(); }
+  const mt = (c, r = .5, e) => new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness: r }, e || {}));
+  const U = new THREE.SphereGeometry(1, 28, 20);
+  const A = (m, p, sc, g = U) => { const o = new THREE.Mesh(g, m); o.castShadow = true; o.position.set(p[0], p[1], p[2]); o.scale.set(sc[0], sc[1], sc[2]); h.add(o); return o; };
+  const [rx, ry, rz] = { oval: [.128, .158, .14], round: [.146, .15, .146], square: [.138, .15, .142] }[LOOK.face] || [.128, .158, .14], jw = { oval: .8, round: .96, square: 1 }[LOOK.face] || .8;
+  const Z = (x, y) => rz * Math.sqrt(Math.max(.03, 1 - (x / rx) ** 2 - ((y - .01) / ry) ** 2));
+  const white = mt('#fbfbfd', .3), dark = mt('#14141a', .4), iris = mt(EYES[LOOK.eye] || EYES[0], .25), lipM = mt(LIPS[LOOK.lips] || LIPS[0], .4);
+  // cráneo, mandíbula, mentón y mejillas
+  A(sk, [0, .01, 0], [rx, ry, rz]); A(sk, [0, -.075, .012], [rx * jw, ry * .6, rz * .82]); A(sk, [0, -.128, .058], [LOOK.face === 'square' ? .06 : .04, .03, .04]);
+  for (const s of [-1, 1]) A(sk, [s * .06, -.046, .06], [.038, .032, .038]);
+  // nariz
+  const ns = { small: .85, mid: 1, big: 1.2 }[LOOK.nose] || 1;
+  A(sk, [0, .002, Z(0, .002) + .002], [.013, .03, .012]); A(sk, [0, -.026, Z(0, -.026) + .01 * ns], [.02 * ns, .017 * ns, .02 * ns]);
+  for (const s of [-1, 1]) A(sk, [s * .017 * ns, -.03, Z(s * .017, -.03) + .002], [.011 * ns, .011 * ns, .011 * ns]);
+  // ojos con línea de párpado, pestañas y cejas
+  const thk = { thin: .6, normal: 1, thick: 1.6 }[LOOK.brow] * (male ? 1.25 : 1);
+  for (const s of [-1, 1]) { const x = s * .05, y = .02, z = Z(x, y), ry2 = s * .38;
+    A(white, [x, y, z - .001], [.027, .021, .013]).rotation.y = ry2;
+    A(iris, [x, y, z + .007], [.0148, .0148, .006]).rotation.y = ry2; A(dark, [x, y, z + .0112], [.0078, .0078, .004]); A(white, [x + s * .005, y + .006, z + .0128], [.0035, .0035, .002]);
+    const ln = new THREE.Mesh(new THREE.TorusGeometry(.027, male ? .004 : .0055, 6, 14, Math.PI), dark); ln.position.set(x, y + .002, z + .004); ln.rotation.y = ry2; h.add(ln);
+    if (!male) { const lc = A(dark, [x + s * .03, y + .008, z + .002], [.004, .012, .004], new THREE.ConeGeometry(1, 2, 5)); lc.rotation.z = -s * .9; }
+    const bx2 = s * .052, br = A(hm, [bx2, .066, Z(bx2, .066) + .002], [.03, .0055 * thk, .008]); br.rotation.y = ry2; br.rotation.z = -s * .08; }
+  // boca, orejas, aretes
+  const mz = Z(0, -.06) + .004 + (LOOK.beard === 'beard' ? .012 : 0);
+  sim.mouth = new THREE.Mesh(new THREE.TorusGeometry(.019, .0048, 6, 14, Math.PI), lipM); sim.mouth.position.set(0, -.05, mz); sim.mouth.rotation.z = Math.PI; h.add(sim.mouth);
+  A(lipM, [0, -.042, Z(0, -.042) + .002 + (LOOK.beard === 'beard' ? .012 : 0)], [.016, .0038, .007]);
+  for (const s of [-1, 1]) { A(sk, [s * rx * .97, -.005, -.005], [.014, .03, .024]);
+    if (LOOK.ears === 'studs') A(mt('#ffd23f', .25, { metalness: .8 }), [s * (rx * .97 + .01), -.035, -.005], [.008, .008, .008]);
+    if (LOOK.ears === 'hoops') { const r = new THREE.Mesh(new THREE.TorusGeometry(.016, .0035, 6, 14), mt('#ffd23f', .25, { metalness: .8 })); r.position.set(s * (rx * .97 + .008), -.05, -.005); r.rotation.y = Math.PI / 2; h.add(r); } }
+  // marcas y vello facial
+  const mk = mt(tint(SKINS[LOOK.skin], -.22), .7);
+  if (LOOK.marks === 'freckles') for (const [dx, dy] of [[.03, -.01], [.05, -.02], [.042, -.03], [.062, -.012], [.022, -.022], [.07, -.03]]) for (const s of [-1, 1]) A(mk, [s * dx, dy, Z(s * dx, dy) + .001], [.0045, .0045, .003]);
+  if (LOOK.marks === 'mole') A(mt('#3a2418', .6), [.05, -.045, Z(.05, -.045) + .001], [.006, .006, .004]);
+  if (LOOK.marks === 'blush') for (const s of [-1, 1]) A(mt('#ff8a96', .9, { transparent: true, opacity: .4 }), [s * .075, -.03, Z(s * .075, -.03) + .0005], [.026, .016, .004]).rotation.y = s * .5;
+  const bm = LOOK.beard === 'stubble' ? mt(HAIRS[LOOK.hair], 1, { transparent: true, opacity: .4 }) : hm, B = LOOK.beard;
+  if (B === 'stubble' || B === 'beard') A(bm, [0, -.04, .012], [rx * .9, ry * .72, rz * .92], new THREE.SphereGeometry(1, 24, 12, 0, TAU, Math.PI * .5, Math.PI * .5));
+  if (B === 'mustache' || B === 'goatee' || B === 'beard') for (const s of [-1, 1]) A(hm, [s * .016, -.036, Z(s * .016, -.036) + .003 + (B === 'beard' ? .012 : 0)], [.02, .008, .01]).rotation.z = -s * .2;
+  if (B === 'goatee') A(hm, [0, -.125, .066], [.028, .036, .026]);
+  // pelo: cúpula pegada al cráneo (la línea del cabello queda por encima de las cejas) + flequillo sobre la superficie
+  const st = LOOK.style, dome = (ext, th, tilt) => { const d = A(hm, [0, .01, 0], [rx * ext, ry * ext, rz * ext], new THREE.SphereGeometry(1, 32, 20, 0, TAU, 0, Math.PI * th)); d.rotation.x = -tilt; return d; };
+  const lock = (x, y, len, w, rzz = 0) => { const l = A(hm, [x, y, Z(x, y) + .006], [w, len, .016]); l.rotation.x = -.4; l.rotation.z = rzz; return l; };
+  const fringe = (n, len, sw) => { for (let i = -n; i <= n; i++) lock(i * .033, .1 - Math.abs(i) * .007, len * .85, .03, -i * .12 - sw); };
+  const sides = (len) => { for (const s of [-1, 1]) A(hm, [s * rx * .95, -.01, .03], [.014, len, .034]); };
+  const curtain = (hgt, th0 = 1.22, ln = 3.84) => { const c = A(hm, [0, .01 - hgt / 2 + .03, -.012], [1, 1, .88], new THREE.CylinderGeometry(rx * 1.1, rx * (hgt > .3 ? .9 : 1.0), hgt, 24, 1, true, th0, ln)); return c; };
+  if (st !== 'bald') {
+    if (st === 'buzz') dome(1.03, .47, .5);
+    else if (st === 'mohawk') { dome(1.03, .47, .5); for (let i = 0; i < 7; i++) A(hm, [0, .16 - Math.abs(i - 3) * .008, .1 - i * .036], [.018, .06 - Math.abs(i - 3) * .006, .022]); }
+    else if (st === 'afro') { dome(1.07, .49, .52); A(hm, [0, .075, -.065], [.19, .185, .185]); }
+    else {
+      dome(1.07, .49, .52);
+      if (st === 'short' || st === 'bob' || st === 'long' || st === 'wavy' || st === 'pony' || st === 'bun' || st === 'twin' || st === 'braid') fringe(3, .045, 0);
+      if (st === 'pixie') { fringe(3, .05, .15); sides(.07); }
+      if (st === 'sidepart') { for (let i = -3; i <= 3; i++) lock(i * .03 + .01, .1 - Math.abs(i) * .004, .06, .03, -.55); A(hm, [.04, .135, .06], [.06, .03, .06]); }
+      if (st === 'short') sides(.05);
+      if (st === 'spiky') { for (let i = 0; i < 9; i++) { const a = i / 9 * TAU, c = A(hm, [Math.cos(a) * .085, .15, Math.sin(a) * .085 - .02], [.034, .06, .034], new THREE.ConeGeometry(1, 2, 7)); c.rotation.set(Math.sin(a) * .55, 0, -Math.cos(a) * .55); }
+        for (let i = -2; i <= 2; i++) { const c = A(hm, [i * .036, .125, Z(i * .036, .125) + .004], [.022, .05, .022], new THREE.ConeGeometry(1, 2, 6)); c.rotation.set(.9, 0, -i * .18); } }
+      if (st === 'curly') for (let i = 0; i < 28; i++) { let y = .125 - (i % 7) * .027, phi = i * 2.4; const f = Math.sqrt(Math.max(.05, 1 - ((y - .01) / (ry * 1.06)) ** 2)), x = Math.sin(phi) * rx * 1.06 * f, z = Math.cos(phi) * rz * 1.06 * f; if (z > .02 && y < .09) continue; A(hm, [x, y, z], [.036, .036, .036]); }
+      if (st === 'long') { curtain(.4); for (const s of [-1, 1]) A(hm, [s * (rx + .004), -.1, .04], [.032, .115, .045]); }
+      if (st === 'wavy') { curtain(.44); for (const s of [-1, 1]) for (let i = 0; i < 4; i++) A(hm, [s * (rx + .012 + (i % 2) * .012), -.08 - i * .07, .045], [.03, .05, .036]); }
+      if (st === 'bob') { curtain(.26); for (const s of [-1, 1]) A(hm, [s * (rx + .008), -.07, .05], [.026, .09, .04]); }
+      if (st === 'pony') { const t = A(hm, [0, -.09, -.19], [.05, .18, .05], new THREE.ConeGeometry(1, 2, 10)); t.rotation.x = Math.PI + .5; A(mt('#e8564a'), [0, .06, -.15], [.04, .014, .04], new THREE.TorusGeometry(1, .35, 6, 12)).rotation.x = Math.PI / 2 - .4; }
+      if (st === 'bun') { A(hm, [0, .185, -.06], [.075, .075, .075]); A(mt('#e8564a'), [0, .13, -.06], [.07, .02, .07], new THREE.TorusGeometry(1, .18, 6, 14)).rotation.x = Math.PI / 2; }
+      if (st === 'twin') for (const s of [-1, 1]) { A(hm, [s * .16, -.05, -.075], [.048, .09, .048]); A(hm, [s * .17, -.14, -.075], [.036, .07, .036]); A(mt('#e8564a'), [s * .145, .05, -.07], [.026, .026, .026]); }
+      if (st === 'braid') for (let i = 0; i < 7; i++) A(hm, [0, -.04 - i * .07, -.15 - i * .01], [.048 - i * .004, .06, .045 - i * .003]);
+    }
+  }
+  // accesorios
+  const ac = LOOK.acc, sc = SHIRTS[LOOK.shirt];
+  if (ac === 'glasses') { const f = mt(0x1a1a22, .3), gl = mt(0xbfe6ff, .1, { transparent: true, opacity: .3 });
+    for (const s of [-1, 1]) { const x = s * .05, z = Z(x, .02) + .016, r = new THREE.Mesh(new THREE.TorusGeometry(.04, .0055, 6, 18), f); r.position.set(x, .02, z); r.rotation.y = s * .3; h.add(r); const l = new THREE.Mesh(new THREE.CircleGeometry(.037, 16), gl); l.position.set(x, .02, z); l.rotation.y = s * .3; h.add(l); }
+    A(f, [0, .026, Z(0, .026) + .018], [.016, .004, .004]); }
+  if (ac === 'hat') { const m = mt(sc, .8); A(m, [0, .15, 0], [.25, .008, .25], new THREE.CylinderGeometry(1, 1, 1, 26)); A(m, [0, .22, 0], [.125, .075, .125], new THREE.CylinderGeometry(.9, 1, 1, 22)); A(mt(0x2a2a30), [0, .175, 0], [.14, .016, .14], new THREE.CylinderGeometry(1, 1, 1, 22)); }
+  if (ac === 'cap') { const m = mt(sc, .7), c = A(m, [0, .045, 0], [rx * 1.12, ry * 1.1, rz * 1.12], new THREE.SphereGeometry(1, 24, 14, 0, TAU, 0, Math.PI * .5)); c.rotation.x = -.15; A(m, [0, .085, .17], [.09, .006, .07], new THREE.CylinderGeometry(1, 1, 1, 18)).rotation.x = .1; }
+  if (ac === 'crown') { const g = mt(0xffd23f, .25, { metalness: .7 }); A(g, [0, .16, 0], [.115, .03, .115], new THREE.CylinderGeometry(1, .92, 1, 16, 1, true)); for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; A(g, [Math.cos(a) * .11, .205, Math.sin(a) * .11], [.02, .035, .02], new THREE.ConeGeometry(1, 2, 5)); } }
+  if (ac === 'bow') { const m = mt(0xe8564a, .5); A(m, [.09, .13, .07], [.045, .03, .025]); A(m, [.15, .13, .07], [.045, .03, .025]); A(mt(0xb03a30), [.12, .13, .075], [.02, .02, .02]); }
+  // complexión y estatura
+  const bd = { slim: .92, avg: 1, broad: 1.1 }[LOOK.build] || 1; sim.torso.scale.set(bd, 1, bd); h.scale.set(1 / bd, 1, 1 / bd);
+  sim.root.scale.setScalar((male ? 1.05 : 1) * ({ short: .94, mid: 1, tall: 1.07 }[LOOK.height] || 1));
+}
+{ const _bs2 = buildSim; buildSim = function () { _bs2(); premiumHead(); }; }
+/* ===== Retrato del HUD: dibujado con los colores y rasgos reales (antes salía negro) ===== */
+function drawPortrait() {
+  const svg = $('.who .face'); if (!svg) return; const sk = SKINS[LOOK.skin], hr = HAIRS[LOOK.hair], sh = SHIRTS[LOOK.shirt], ey = EYES[LOOK.eye] || '#3f86d0', st = LOOK.style, male = LOOK.gender === 'm', happy = S.mood > 45;
+  const shade = tint(sk, -.12), rw = { oval: 14, round: 16, square: 15.5 }[LOOK.face] || 14, jaw = LOOK.face === 'square' ? 'Q47 52 32 52Q17 52 17 47' : 'Q44 53 32 53Q20 53 17 47';
+  let back = '', front = '';
+  if (['long', 'wavy', 'pixie'].includes(st)) back = `<path d="M12 64V34Q11 8 32 7Q53 8 52 34V64Z" fill="${hr}"/>`;
+  if (st === 'bob') back = `<path d="M13 52V32Q13 8 32 8Q51 8 51 32V52Z" fill="${hr}"/>`;
+  if (st === 'afro') back = `<circle cx="32" cy="25" r="22" fill="${hr}"/>`; if (st === 'twin') back = `<circle cx="13" cy="38" r="6" fill="${hr}"/><circle cx="51" cy="38" r="6" fill="${hr}"/>`;
+  if (st === 'bun') back = `<circle cx="32" cy="9" r="7" fill="${hr}"/>`; if (st === 'pony') back = `<path d="M46 20Q60 28 54 48Q50 36 44 28Z" fill="${hr}"/>`;
+  const cap = `<path d="M17 31Q16 11 32 11Q48 11 47 31Q43 22 32 21Q21 22 17 31Z" fill="${hr}"/>`;
+  if (st === 'buzz') front = `<path d="M18 29Q18 13 32 13Q46 13 46 29Q42 20 32 19Q22 20 18 29Z" fill="${hr}" opacity=".85"/>`;
+  else if (st === 'mohawk') front = `<path d="M28 21Q29 4 32 3Q35 4 36 21Z" fill="${hr}"/>`;
+  else if (st === 'spiky') front = cap + `<path d="M19 20L21 8L26 17L30 5L34 17L40 6L42 18L47 10L46 24Z" fill="${hr}"/>`;
+  else if (st === 'curly') front = [[20, 20], [26, 14], [33, 12], [40, 15], [45, 21], [17, 28], [47, 28]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="6" fill="${hr}"/>`).join('');
+  else if (st === 'sidepart') front = `<path d="M16 32Q14 10 32 10Q50 10 48 30Q44 20 30 21Q22 22 16 32Z" fill="${hr}"/><path d="M26 20Q38 14 46 24Q36 19 26 20Z" fill="${hr}"/>`;
+  else if (st !== 'bald') front = cap;
+  if (st === 'afro') front = `<path d="M18 28Q20 15 32 14Q44 15 46 28Q40 21 32 21Q24 21 18 28Z" fill="${hr}"/>`;
+  const eyes = [24.5, 39.5].map(x => `<ellipse cx="${x}" cy="35" rx="3.2" ry="2.5" fill="#fff"/><circle cx="${x}" cy="35" r="1.9" fill="${ey}"/><circle cx="${x}" cy="35" r="1" fill="#111"/><circle cx="${x + .7}" cy="34.3" r=".5" fill="#fff"/><path d="M${x - 3.4} 34.2Q${x} 31.4 ${x + 3.4} 34.2" fill="none" stroke="#1a1a1f" stroke-width="${male ? 1 : 1.4}" stroke-linecap="round"/><path d="M${x - 3.2} 30.2Q${x} ${male ? 28.6 : 29} ${x + 3.2} 30.2" fill="none" stroke="${hr}" stroke-width="${LOOK.brow === 'thick' ? 2.2 : LOOK.brow === 'thin' ? .9 : 1.5}" stroke-linecap="round"/>`).join('');
+  const mouth = happy ? `<path d="M27 44.5Q32 49 37 44.5" fill="none" stroke="${LIPS[LOOK.lips] || LIPS[0]}" stroke-width="2.2" stroke-linecap="round"/>` : `<path d="M27.5 46.5Q32 43.5 36.5 46.5" fill="none" stroke="${LIPS[LOOK.lips] || LIPS[0]}" stroke-width="2.2" stroke-linecap="round"/>`;
+  let extra = ''; const B = LOOK.beard; if (B === 'stubble') extra += `<path d="M18 40Q20 52 32 53Q44 52 46 40Q40 46 32 46Q24 46 18 40Z" fill="${hr}" opacity=".35"/>`; if (B === 'beard') extra += `<path d="M17 38Q18 54 32 55Q46 54 47 38Q42 46 32 46Q22 46 17 38Z" fill="${hr}"/>`;
+  if (B === 'mustache' || B === 'goatee' || B === 'beard') extra += `<path d="M26 42Q32 40 38 42Q32 44 26 42Z" fill="${hr}"/>`; if (B === 'goatee') extra += `<ellipse cx="32" cy="51" rx="3" ry="3.5" fill="${hr}"/>`;
+  if (LOOK.marks === 'freckles') extra += [[22, 40], [25, 41.5], [39, 41.5], [42, 40], [28, 38], [36, 38]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r=".6" fill="${shade}"/>`).join('');
+  if (LOOK.marks === 'blush' || !male) extra += `<ellipse cx="22" cy="41" rx="3" ry="1.8" fill="#ff8a96" opacity=".3"/><ellipse cx="42" cy="41" rx="3" ry="1.8" fill="#ff8a96" opacity=".3"/>`;
+  if (LOOK.marks === 'mole') extra += `<circle cx="40" cy="43" r=".9" fill="#3a2418"/>`;
+  if (LOOK.ears === 'studs') extra += `<circle cx="17.5" cy="41" r="1" fill="#ffd23f"/><circle cx="46.5" cy="41" r="1" fill="#ffd23f"/>`; if (LOOK.ears === 'hoops') extra += `<circle cx="17.5" cy="43" r="2" fill="none" stroke="#ffd23f" stroke-width=".8"/><circle cx="46.5" cy="43" r="2" fill="none" stroke="#ffd23f" stroke-width=".8"/>`;
+  let acc = ''; if (LOOK.acc === 'glasses') acc = `<circle cx="24.5" cy="35" r="5.2" fill="#bfe6ff" fill-opacity=".25" stroke="#1a1a22" stroke-width="1.1"/><circle cx="39.5" cy="35" r="5.2" fill="#bfe6ff" fill-opacity=".25" stroke="#1a1a22" stroke-width="1.1"/><path d="M29.7 34.6H34.3" stroke="#1a1a22" stroke-width="1"/>`;
+  if (LOOK.acc === 'hat') acc = `<ellipse cx="32" cy="16" rx="25" ry="3.6" fill="${sh}"/><path d="M21 16Q22 3 32 3Q42 3 43 16Z" fill="${sh}"/>`; if (LOOK.acc === 'cap') acc = `<path d="M16 22Q16 7 32 7Q48 7 48 22Z" fill="${sh}"/><path d="M30 20H54Q54 24 48 24H30Z" fill="${sh}"/>`;
+  if (LOOK.acc === 'crown') acc = `<path d="M20 15L22 6L27 12L32 4L37 12L42 6L44 15Z" fill="#ffd23f" stroke="#c9961a" stroke-width=".6"/>`; if (LOOK.acc === 'bow') acc = `<path d="M41 12L48 8V17Z M41 12L34 8V17Z" fill="#e8564a"/><circle cx="41" cy="12" r="2" fill="#b03a30"/>`;
+  const html = `<defs><clipPath id="fc"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#fc)"><rect width="64" height="64" fill="#cfe4ff"/>${back}<path d="${male ? 'M11 64Q12 50 32 50Q52 50 53 64Z' : 'M13 64Q15 51 32 51Q49 51 51 64Z'}" fill="${sh}"/><rect x="28" y="46" width="8" height="8" rx="3" fill="${shade}"/><ellipse cx="17" cy="38" rx="2.4" ry="3.6" fill="${sk}"/><ellipse cx="47" cy="38" rx="2.4" ry="3.6" fill="${sk}"/><path d="M${32 - rw} 32Q${32 - rw} 14 32 14Q${32 + rw} 14 ${32 + rw} 32L${32 + rw} 39${jaw.replace('17 47', '' + (32 - rw) + ' 39').replace(/Q47 52 32 52/, `Q${32 + rw} 52 32 52`)}Z" fill="${sk}"/><path d="M30.5 38Q32 42 33.5 38" fill="none" stroke="${shade}" stroke-width="1.3" stroke-linecap="round"/>${eyes}${mouth}${extra}${front}${acc}</g>`;
+  if (svg.dataset.k !== html) { svg.innerHTML = html; svg.dataset.k = html; }
+}
+{ const _sl = setLook; setLook = function () { _sl(); drawPortrait(); }; }
+setInterval(drawPortrait, 1200); drawPortrait();
+/* ===== Filas nuevas en Crear un Sim ===== */
+{ const anchor = $('#accSw').previousElementSibling, rows = [['Forma del rostro', 'faceSw', FACES, 'face', false], ['Color de ojos', 'eyeSw', EYES, 'eye', true], ['Cejas', 'browSw', BROWS, 'brow', false], ['Nariz', 'noseSw', NOSES, 'nose', false], ['Labios', 'lipSw', LIPS, 'lips', true],
+    ['Vello facial', 'beardSw', BEARDS, 'beard', false], ['Marcas', 'marksSw', MARKS, 'marks', false], ['Aretes', 'earsSw', EARS, 'ears', false], ['Complexión', 'buildSw', BUILDS, 'build', false], ['Estatura', 'heightSw', HEIGHTS, 'height', false]];
+  anchor.insertAdjacentHTML('beforebegin', rows.map(r => `<div class="lab">${r[0]}</div><div class="sws" id="${r[1]}" style="gap:5px;flex-wrap:wrap"></div>`).join(''));
+  const paint = () => rows.forEach(r => swatches(r[1], r[2], r[3], r[4]));
+  { const _sw2 = showWelcome; showWelcome = function () { _sw2(); paint(); }; }
+  $('#randBtn').addEventListener('click', () => { const R = n => Math.floor(Math.random() * n), pk = l => l[R(l.length)][0];
+    Object.assign(LOOK, { face: pk(FACES), brow: pk(BROWS), nose: pk(NOSES), marks: pk(MARKS), ears: pk(EARS), build: pk(BUILDS), height: pk(HEIGHTS), eye: R(EYES.length), lips: R(LIPS.length), beard: LOOK.gender === 'm' && R(3) === 0 ? pk(BEARDS) : 'none' }); buildSim(); setLook(); paint(); }); }
 
 boot();
 
