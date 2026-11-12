@@ -3,15 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Casa Dulce Casa</title>
+<title>Pennywhistle Court</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Mulish:wght@600;700;800&display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231f4799'/%3E%3Cpath d='M7 16v10h18V16L16 8z' fill='%23fbf1d6'/%3E%3Cpath d='M4 17L16 6l12 11' fill='none' stroke='%23e8564a' stroke-width='3.4'/%3E%3Cpath d='M16 1l4 6h-8z' fill='%23b6ff7a'/%3E%3Cpath d='M16 13l4-6h-8z' fill='%233fae1f'/%3E%3C/svg%3E">
 <style>
 /* Layout: lienzo WebGL a pantalla completa con un HUD de cristal flotante (arriba: Sim y reloj, abajo: dock de modos). */
 :root{
   --glass:rgba(14,24,42,.8); --glass2:rgba(255,255,255,.09); --line:rgba(255,255,255,.15);
   --fg:#eef4fb; --mute:#a3b6cb; --accent:#3fdc7e; --accent-ink:#06301a; --warn:#ffb547; --bad:#ff6b5e; --info:#5cc8ff;
-  --display:'Fredoka',ui-rounded,'Segoe UI',system-ui,sans-serif; --body:'Nunito',system-ui,sans-serif;
+  --display:'Lilita One','Trebuchet MS',sans-serif; --body:'Mulish','Trebuchet MS',sans-serif;
   color-scheme:dark;
 }
 html,body{height:100%;margin:0;background:#0b1330;color:var(--fg);font-family:var(--body);font-size:14px;overflow:hidden;
@@ -240,35 +241,48 @@ body{font-synthesis:none}
  .needs,.queue{width:132px}.who b{font-size:16px}.money{font-size:15px}
 }
 @media (max-width:640px){.who{min-width:0}.needs,.queue{width:158px}.who .face{width:48px;height:48px}.who{grid-template-columns:48px 1fr}}
-/* ===== Arreglos de layout v3: nada se sale de la pantalla ===== */
-:root{--ftop:118px}
-#hud{overflow:hidden;box-sizing:border-box}
-.top{flex:0 0 auto;min-height:0}
-.bottom{flex:0 1 auto;min-height:0;max-height:100%;width:100%}
-.col{min-height:0}
-.who{grid-template-columns:auto minmax(0,1fr)!important;max-width:240px}
-.who>b,.who>#moodTxt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cat{display:flex;flex-direction:column;max-height:min(262px,38vh)}
-.cat-h{flex:0 0 auto}
-.items{flex:1 1 auto;min-height:0;overflow-x:auto;overflow-y:auto}
-.dock{max-width:min(100%,920px)}
-/* Teléfono, Perfil y Decorar flotan a la derecha (ya no empujan el menú inferior fuera de la pantalla) */
-#phone,#skills,#decor{position:absolute!important;right:max(16px,env(safe-area-inset-right,0px));top:var(--ftop);bottom:auto!important;left:auto;
-  width:min(360px,calc(100% - 32px))!important;max-height:calc(100% - var(--ftop) - 74px)!important;overflow:auto;z-index:15;box-sizing:border-box;-webkit-overflow-scrolling:touch}
-#phone[hidden],#skills[hidden],#decor[hidden]{display:none!important}
-.building .queue{display:none!important}
-@media (max-height:700px){
-  :root{--ftop:100px}
-  .needs{padding:5px 8px;gap:3px}.need{font-size:10px}.bar{height:8px}.queue{padding:5px}
-  .who .face{width:48px;height:48px}.who b{font-size:16px}
-  .item{flex-basis:84px}.item img{width:56px;height:56px}.item b{font-size:11px}
-  .clock b{font-size:24px}
-}
-@media (orientation:landscape) and (max-height:540px){
-  :root{--ftop:84px}
-  .cat{max-height:44vh}
-  #phone,#skills,#decor{width:min(320px,48vw)!important}
-}
+
+/* ===== Diseño extra: necesidades urgentes, tarjetas de tienda, foco de teclado ===== */
+.need.low{color:#b8321f}
+.need.low .bar{border-color:#b8321f}
+@media (prefers-reduced-motion:no-preference){.need.low .bar i{animation:lowp .9s ease-in-out infinite}}
+@keyframes lowp{50%{filter:brightness(1.55) saturate(1.5)}}
+.item{position:relative;background:linear-gradient(#fff,#e9f1ff)}
+.item.poor{filter:grayscale(.55);opacity:.72}
+.item.nuevo::after{content:"Nuevo";position:absolute;top:-7px;right:-6px;padding:1px 8px;border-radius:9px;background:var(--gold);color:var(--navy);border:2px solid var(--navy);font:400 11px var(--display);text-shadow:none;transform:rotate(6deg);box-shadow:0 2px 0 #0a1c45}
+.btn:focus-visible,.item:focus-visible,.cbtn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.dock{background:linear-gradient(#6aa0ee,#2f63c0 55%,#1f4799)}
+.who .face{animation:none}
+.toast{border-left:8px solid var(--lime)}.toast.bad{border-left-color:#e0584a}
+
+/* ===== HUD compacto al estilo Los Sims ===== */
+#hud{padding-block:8px;gap:6px}.col{gap:6px}
+.who{min-width:0!important;max-width:190px;grid-template-columns:40px auto!important;padding:5px 12px 5px 5px!important;cursor:pointer}
+.who .face{width:40px!important;height:40px!important;border-width:3px!important}
+.who b{font-size:15px!important}.who #moodTxt{font-size:11px!important;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.needs{width:116px!important;padding:6px 8px!important;gap:3px!important}
+.need{grid-template-columns:46px 1fr!important;font-size:10px!important}.need span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{height:7px!important}.queue{width:116px!important;padding:5px 7px!important}.qi{padding:3px 6px!important;font-size:11px!important}
+.clock{display:flex!important;flex-wrap:wrap;align-items:baseline;gap:2px 10px;max-width:170px;padding:6px 12px!important}
+.clock .speeds{width:100%}.clock .sub{margin:0!important}.clock b{font-size:22px!important}
+.clock .money{width:100%;margin:3px 0 0!important;padding-top:3px!important;font-size:15px!important;text-align:right;border-top:2px solid rgba(14,40,96,.5)}
+.dock{padding:5px 7px!important;gap:6px!important}.dock .btn{padding:6px 11px;font-size:13px}
+#skills,#decor,#phone{position:absolute!important;right:max(12px,env(safe-area-inset-right,0px));bottom:68px;width:min(320px,calc(100vw - 24px))!important;max-height:calc(100% - 150px)!important;overflow:auto;box-sizing:border-box;z-index:5}
+#moreMenu{position:absolute;left:50%;bottom:68px;transform:translateX(-50%);display:grid;grid-template-columns:repeat(2,minmax(110px,1fr));gap:6px;padding:8px;width:min(300px,calc(100vw - 24px));box-sizing:border-box;z-index:6}
+#moreMenu[hidden]{display:none}#moreMenu .btn{text-align:center}
+
+/* ===== Iconos dibujados ===== */
+.ic{width:17px;height:17px;flex:none;vertical-align:-4px;margin-right:5px;fill:none;overflow:visible}
+.tabs .btn svg.ic{width:19px;height:19px;fill:none;margin:0}
+.need{grid-template-columns:22px 1fr!important}.needs{width:104px!important}.need .ic{width:19px;height:19px;margin:0}
+.need.low .ic{animation:none;filter:drop-shadow(0 0 3px #e0584a)}
+#tod .ic{width:24px;height:24px;margin:0 2px 0 0;vertical-align:-6px}
+#money::before,#catMoney::before{content:"";display:inline-block;width:24px;height:16px;margin-right:7px;vertical-align:-2px;background:var(--money-ic) center/contain no-repeat}
+.item span::before{content:"";display:inline-block;width:15px;height:10px;margin-right:4px;vertical-align:-1px;background:var(--money-ic) center/contain no-repeat}
+#btnSnd:not(.on) .ic{opacity:.45;filter:grayscale(1)}
+#moreMenu .btn .ic{width:19px;height:19px}
+.dock .seg .btn .ic{margin-right:4px}
+.ld-t{font-size:clamp(34px,6.6vw,58px)!important}
 </style>
 </head>
 <body>
@@ -280,7 +294,7 @@ body{font-synthesis:none}
       <div class="panel who">
         <svg class="face" viewBox="0 0 64 64" aria-hidden="true"><defs><clipPath id="fc"><circle cx="32" cy="32" r="32"/></clipPath></defs><g clip-path="url(#fc)"><rect width="64" height="64" fill="#cfe4ff"/><path d="M12 64V36Q10 8 32 7Q54 8 52 36V64Z" style="fill:var(--hair)"/><path d="M14 64Q16 50 32 50Q48 50 50 64Z" style="fill:var(--shirt)"/><ellipse cx="32" cy="35" rx="15" ry="17" style="fill:var(--skin)"/><path d="M16 30Q18 12 32 12Q46 12 48 30Q40 21 32 22Q24 21 16 30Z" style="fill:var(--hair)"/><circle cx="26" cy="35" r="2" fill="#1a1a1f"/><circle cx="38" cy="35" r="2" fill="#1a1a1f"/><path d="M26 44Q32 49 38 44" fill="none" stroke="#8a2f2f" stroke-width="2" stroke-linecap="round"/></g></svg>
         <b id="simName">Sim</b><span id="moodTxt">Bien</span>
-        <div class="money" id="money">§0</div>
+        <div class="money" id="money">0</div>
       </div>
       <div class="panel needs" id="needs"></div>
       <div class="panel queue" id="queue" hidden><div class="qt">Acciones</div><div id="queueList"></div></div>
@@ -341,9 +355,9 @@ body{font-synthesis:none}
   <ul>
     <li><b>Vivir:</b> toca un mueble para ver sus acciones. Toca el suelo para caminar.</li>
     <li><b>Construir:</b> elige un mueble, muévelo sobre la parcela y toca para colocarlo. <kbd>R</kbd> gira.</li>
-    <li>Arrastra para rotar la cámara. Rueda o pellizco para acercar. Clic derecho o <kbd>Shift</kbd> para mover.</li>
+    <li><b>Táctil:</b> un dedo mueve la cámara, pellizca para acercar, gira dos dedos para rotar y sube o baja dos dedos para inclinar. <b>Ratón:</b> arrastra para rotar, rueda para acercar, clic derecho o <kbd>Shift</kbd> para mover.</li>
     <li><kbd>W A S D</kbd> mueve la cámara, <kbd>Q</kbd> <kbd>E</kbd> rotan, <kbd>Espacio</kbd> pausa, <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> velocidad.</li>
-    <li>Trabaja en el ordenador para ganar §, y compra muebles nuevos.</li>
+    <li>Trabaja en el ordenador para ganar $, y compra muebles nuevos.</li>
     <li><b>Teléfono:</b> invita al vecino, pide comida a domicilio o pide el día libre.</li>
     <li><b>Trabajo:</b> lun–vie de 9:00 a 17:00, tu Sim sale de casa y vuelve con el sueldo.</li>
     <li><b>Facturas:</b> llegan al buzón cada 3 días. Toca el buzón para pagarlas; si se vencen, llevan recargo.</li>
@@ -354,7 +368,7 @@ body{font-synthesis:none}
   </div>
 </div>
 <div id="loading"><svg class="ld-pb" viewBox="0 0 24 32" aria-hidden="true"><polygon points="12,1 22,16 12,16" fill="#b6ff7a"/><polygon points="12,1 2,16 12,16" fill="#7de04a"/><polygon points="12,31 22,16 12,16" fill="#3fae1f"/><polygon points="12,31 2,16 12,16" fill="#58c831"/><polygon points="12,3 14,9 10,12" fill="rgba(255,255,255,.6)"/></svg>
-<div class="ld-t">Casa Dulce Casa</div><div class="ld-bar"><i id="ldFill"></i></div><div id="ldTxt">Cargando…</div><div id="ldTip"></div></div>
+<div class="ld-t">Pennywhistle Court</div><div class="ld-bar"><i id="ldFill"></i></div><div id="ldTxt">Cargando…</div><div id="ldTip"></div></div>
 <div id="welcome">
   <div class="panel wcard">
     <h1>Crear un Sim</h1>
@@ -1901,7 +1915,7 @@ const sprTex = {};
 function glyph(ch, col, size = 64, round) {
   return canvasTex(size, size, (g, w, h) => {
     if (round) { g.fillStyle = col; g.beginPath(); g.arc(w / 2, h / 2, w * .38, 0, TAU); g.fill(); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 3; g.stroke(); }
-    else { g.font = '700 ' + (w * .8) + 'px Fredoka, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 4; g.strokeText(ch, w / 2, h / 2 + 2); g.fillText(ch, w / 2, h / 2 + 2); }
+    else { g.font = '700 ' + (w * .8) + 'px "Lilita One", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = col; g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 4; g.strokeText(ch, w / 2, h / 2 + 2); g.fillText(ch, w / 2, h / 2 + 2); }
   }, 1, 1);
 }
 const pool = [];
@@ -2108,7 +2122,7 @@ function startItem(item) {
   } else if (act.tv) r = resolveTV(item.o, from);
   else r = pickSpot(item.o, act.spots, from);
   if (!r) return fail(item.kind === 'eat' ? 'No encuentro dónde sentarme' : 'No puedo llegar ahí');
-  if (act.cost && item.kind !== 'eat') { if (G.money < act.cost) { toast('No tienes § suficientes', true); return fail('No tengo dinero…'); } G.money -= act.cost; }
+  if (act.cost && item.kind !== 'eat') { if (G.money < act.cost) { toast('No tienes $ suficientes', true); return fail('No tengo dinero…'); } G.money -= act.cost; }
   const w = r.w ? r.w : spotWorld(item.o, r.sp);
   S.target = { o: r.o || item.o, w, pose: r.pose || act.pose, plate: r.plate, lookAt: r.lookAt };
   S.path = r.path; S.pi = r.path.length > 1 ? 1 : 0; S.state = 'walk'; S.label = act.label;
@@ -2367,7 +2381,7 @@ function startGhost(def, moving) {
   g.traverse(m => { if (m.isMesh) { m.material = ghostOk; m.castShadow = m.receiveShadow = false; } });
   B.ghost = g; scene.add(g);
   if (moving) { moving.group.visible = false; B.cx = moving.cx; B.cz = moving.cz; } else { B.cx = 19; B.cz = 22; }
-  $('#ghostName').textContent = def.name + (moving ? '' : ' · §' + def.price);
+  $('#ghostName').textContent = def.name + (moving ? '' : ' · $' + def.price);
   $('#ghostbar').hidden = false; $('#selbar').hidden = true;
   updGhost();
 }
@@ -2377,7 +2391,7 @@ function updGhost() {
   B.cx = clamp(B.cx, LOT.x0, LOT.x1 - fw); B.cz = clamp(B.cz, LOT.z0, LOT.z1 - fd);
   const r = canPlace(d, B.cx, B.cz, B.rot, B.moving);
   const poor = !B.moving && G.money < d.price;
-  B.valid = r.ok && !poor; B.why = poor ? 'No tienes § suficientes' : r.why || '';
+  B.valid = r.ok && !poor; B.why = poor ? 'No tienes $ suficientes' : r.why || '';
   const indoor = inHouse(B.cx, B.cz);
   B.ghost.position.set(B.cx + fw / 2, indoor ? FLOOR_Y : (d.floor ? .01 : 0), B.cz + fd / 2);
   B.ghost.rotation.y = B.rot * Math.PI / 2;
@@ -2407,7 +2421,7 @@ function commitGhost() {
   if (B.moving) { const o = B.moving; o.group.visible = true; moveObj(o, B.cx, B.cz, B.rot); B.moving = null; toast('Movido'); clearGhost(); selectObj(o); }
   else {
     G.money -= d.price; const o = placeObj(d.id, B.cx, B.cz, B.rot, { pop: true });
-    toast(d.name + ' comprado  −§' + d.price);
+    toast(d.name + ' comprado  −$' + d.price);
     // se mantiene el mismo mueble para comprar otro igual
     updGhost(); refreshCatalog();
   }
@@ -2428,48 +2442,78 @@ function rotSelected() {
 }
 function sellSelected() {
   const o = B.sel; if (!o) return;
-  const v = Math.floor(o.def.price * .6); G.money += v; toast(o.def.name + ' vendido  +§' + v);
+  const v = Math.floor(o.def.price * .6); G.money += v; toast(o.def.name + ' vendido  +$' + v);
   selectObj(null); removeObj(o); saveSoon();
 }
 
 /* ===== Entrada de puntero ===== */
 const ptrs = new Map();
-let drag = null, lastTap = 0;
+let drag = null, lastTap = 0, glide = null;
+/* Cámara táctil como en Los Sims: 1 dedo mueve (con inercia), pellizco acerca hacia los dedos,
+   girar 2 dedos rota, subir/bajar 2 dedos inclina. Cada gesto se "fija" para que no se mezclen. */
+const wpp = () => 2 * CAM.dist * Math.tan(camera.fov * Math.PI / 360) / Math.max(1, canvas.clientHeight);
+function panPx(dx, dy) { const w = wpp(); panCam(-dx * w, -dy * w / Math.max(.45, Math.sin(CAM.pitch))); }
+function zoomAt(f, cx, cy) {
+  const g = CAM.goal, nd = clamp(g.dist * f, G.started ? 7 : 3, G.started ? 90 : 8), k = 1 - nd / g.dist;
+  const P = G.started && !CAM.follow ? groundAt(cx, cy) : null;
+  if (P && k) { g.tx = clamp(g.tx + (P.x - g.tx) * k, -10, 50); g.tz = clamp(g.tz + (P.z - g.tz) * k, -2, 44); }
+  g.dist = nd;
+}
+function glideStep(t) {
+  if (!glide) return;
+  const dt = Math.min(.05, (t - glide.t) / 1000); glide.t = t; panCam(glide.vx * dt, glide.vz * dt);
+  const k = Math.exp(-dt * 4.5); glide.vx *= k; glide.vz *= k;
+  if (Math.hypot(glide.vx, glide.vz) < .5) glide = null; else requestAnimationFrame(glideStep);
+}
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('pointerdown', e => {
-  canvas.setPointerCapture(e.pointerId); canvas.focus();
+  canvas.setPointerCapture(e.pointerId); canvas.focus(); glide = null;
   ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, btn: e.button, type: e.pointerType });
   hideCtx();
-  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; drag = { mode: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), ang: Math.atan2(b.y - a.y, b.x - a.x), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, moved: true }; }
-  else drag = { mode: 'one', moved: false, pan: e.button === 2 || e.button === 1 || e.shiftKey };
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), my = (a.y + b.y) / 2;
+    drag = { mode: 'pinch', d0: d, d, ang: Math.atan2(b.y - a.y, b.x - a.x), rs: 0, my0: my, my, lock: null, moved: true };
+  } else drag = { mode: 'one', moved: false, pan: e.button === 2 || e.button === 1 || e.shiftKey, t: 0, vx: 0, vz: 0 };
 });
 canvas.addEventListener('pointermove', e => {
   const p = ptrs.get(e.pointerId);
   if (!p) { if (B.ghost && e.pointerType === 'mouse') ghostTo(e.clientX, e.clientY); return; }
   const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
   if (drag && drag.mode === 'pinch' && ptrs.size === 2) {
-    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
-    CAM.goal.dist *= Math.pow(drag.d / Math.max(10, d), 1.15); drag.d = d;
-    { let da = Math.atan2(b.y - a.y, b.x - a.x) - drag.ang; if (da > Math.PI) da -= TAU; if (da < -Math.PI) da += TAU; CAM.goal.yaw += da * 1.0; drag.ang += da; }
-    panCam(-(mx - drag.mx) * CAM.goal.dist * .0016, -(my - drag.my) * CAM.goal.dist * .0016); drag.mx = mx; drag.my = my;
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y), ang = Math.atan2(b.y - a.y, b.x - a.x), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    let da = ang - drag.ang; if (da > Math.PI) da -= TAU; if (da < -Math.PI) da += TAU; drag.ang = ang; drag.rs += da;
+    if (!drag.lock) {
+      const sz = Math.abs(d - drag.d0), sr = Math.abs(drag.rs) * drag.d0 / 2, st = Math.abs(my - drag.my0) * (sz < 30 ? 1 : .4), m = Math.max(sz, sr, st);
+      if (m < 14) return;
+      drag.lock = m === sz ? 'zoom' : m === sr ? 'rot' : 'tilt'; drag.d = d; drag.my = my; return;
+    }
+    if (drag.lock === 'zoom') { zoomAt(drag.d / Math.max(10, d), mx, my); drag.d = d; }
+    else if (drag.lock === 'rot') CAM.goal.yaw += da;
+    else { CAM.goal.pitch += (my - drag.my) * .006; drag.my = my; }
     return;
   }
   if (!drag || drag.mode !== 'one') return;
   if (!drag.moved && Math.hypot(e.clientX - p.sx, e.clientY - p.sy) < 6) return;
   drag.moved = true;
   if (B.ghost && p.type === 'touch') { ghostTo(e.clientX, e.clientY); return; }
-  if (drag.pan) panCam(-dx * CAM.goal.dist * .0016, -dy * CAM.goal.dist * .0016);
-  else if (p.type === 'touch') panCam(-dx * CAM.goal.dist * .0016, -dy * CAM.goal.dist * .0016);
-  else { CAM.goal.yaw -= dx * .006; CAM.goal.pitch += dy * .005; }
+  if (drag.pan || p.type === 'touch') {
+    panPx(dx, dy);
+    if (CAM.follow) { CAM.follow = false; syncCamBtn(); }
+    const now = performance.now(), dt = Math.max(.008, (now - (drag.t || now - 16)) / 1000), w = wpp();
+    drag.t = now; drag.vx = lerp(drag.vx, -dx * w / dt, .4); drag.vz = lerp(drag.vz, -dy * w / Math.max(.45, Math.sin(CAM.pitch)) / dt, .4);
+  } else { CAM.goal.yaw -= dx * .006; CAM.goal.pitch += dy * .005; }
 });
 function endPtr(e) {
   const p = ptrs.get(e.pointerId); ptrs.delete(e.pointerId);
   if (!p) return;
   if (drag && drag.mode === 'one' && !drag.moved && e.type === 'pointerup' && p.btn === 0 && !drag.pan) onClick(e.clientX, e.clientY);
-  if (ptrs.size === 0) drag = null; else if (ptrs.size === 1) drag = { mode: 'one', moved: true, pan: false };
+  else if (drag && drag.mode === 'one' && drag.moved && p.type === 'touch' && !B.ghost && e.type === 'pointerup' && performance.now() - drag.t < 90 && Math.hypot(drag.vx, drag.vz) > 3) {
+    glide = { vx: clamp(drag.vx, -60, 60), vz: clamp(drag.vz, -60, 60), t: performance.now() }; requestAnimationFrame(glideStep);
+  }
+  if (ptrs.size === 0) drag = null; else if (ptrs.size === 1) drag = { mode: 'one', moved: true, pan: false, t: 0, vx: 0, vz: 0 };
 }
 canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
-canvas.addEventListener('wheel', e => { e.preventDefault(); CAM.goal.dist *= Math.exp(e.deltaY * .0012); }, { passive: false });
+canvas.addEventListener('wheel', e => { e.preventDefault(); zoomAt(Math.exp(e.deltaY * .0012), e.clientX, e.clientY); }, { passive: false });
 
 function onClick(cx, cy) {
   if (!G.started) return;
@@ -2528,7 +2572,7 @@ function showCtx(cx, cy, title, items) {
 function fmtDur(min) { return min >= 60 ? (min / 60).toFixed(min % 60 ? 1 : 0) + ' h' : min + ' min'; }
 function objMenu(o) {
   return (o.def.acts || []).map(a => ({
-    label: a.label, sub: fmtDur(a.min) + (a.cost ? ' · −§' + a.cost : '') + (a.earn ? ' · +§' + a.earn : ''),
+    label: a.label, sub: fmtDur(a.min) + (a.cost ? ' · −$' + a.cost : '') + (a.earn ? ' · +$' + a.earn : ''),
     run() { enqueue(makeItem(o, a, false)); }
   }));
 }
@@ -2593,8 +2637,6 @@ function setMode(m) {
   G.mode = m; $$('#modeSeg .btn').forEach(x => x.classList.toggle('on', x.dataset.mode === m));
   clearGhost(); selectObj(null); hideCtx();
   $('#catalog').hidden = m !== 'build'; lotGrid.visible = m === 'build';
-  document.body.classList.toggle('building', m === 'build');
-  if (m === 'build') closeFloats();
   if (m === 'build') { buildCatalog(); if (CAM.goal.pitch < 1.1) CAM.goal.pitch = 1.15; }
 }
 
@@ -2609,10 +2651,8 @@ function updateHud(dt) {
   for (const k in NEED_LABEL) { const e = $('#nb_' + k), v = S.needs[k]; e.style.width = v.toFixed(0) + '%'; e.style.background = needColor(v); }
   $('#moodTxt').textContent = moodText(S.mood) + (S.label ? ' · ' + S.label : '');
   $('#simName').textContent = S.name;
-  const c = '#' + moodColor(S.mood).getHexString(), wh = $('.who'); wh.style.setProperty('--pb', c);
-  wh.style.setProperty('--skin', SKINS[LOOK.skin]); wh.style.setProperty('--hair', LOOK.style === 'bald' ? SKINS[LOOK.skin] : HAIRS[LOOK.hair]);
-  wh.style.setProperty('--shirt', SHIRTS[LOOK.shirt]);
-  const m = '§' + Math.floor(G.money).toLocaleString('es'); $('#money').textContent = m; $('#catMoney').textContent = m;
+  const c = '#' + moodColor(S.mood).getHexString(); $('.who').style.setProperty('--pb', c);
+  const m = Math.floor(G.money).toLocaleString('es'); $('#money').textContent = m; $('#catMoney').textContent = m;
   const h = Math.floor(G.min / 60) % 24, mi = Math.floor(G.min % 60);
   $('#clockTime').textContent = ((h + 11) % 12 + 1) + ':' + String(mi).padStart(2, '0'); $('#clockAmpm').textContent = h < 12 ? 'AM' : 'PM';
   $('#clockDay').textContent = DAYS[(G.day - 1) % 7] + ' · Día ' + G.day;
@@ -2668,8 +2708,8 @@ function buildCatalog() {
   const it = $('#items'); it.innerHTML = '';
   for (const d of Object.values(CAT).filter(d => d.cat === curTab)) {
     const b = document.createElement('button'); b.className = 'item'; b.dataset.id = d.id;
-    b.innerHTML = `<img alt="" src="${makeIcon(d)}"><b>${d.name}</b><span>§${d.price.toLocaleString('es')}</span>`;
-    b.addEventListener('click', () => { if (G.money < d.price) toast('No tienes § suficientes', true); startGhost(d); b.classList.add('sel'); });
+    b.innerHTML = `<img alt="" src="${makeIcon(d)}"><b>${d.name}</b><span>${d.price.toLocaleString('es')}</span>`;
+    b.addEventListener('click', () => { if (G.money < d.price) toast('No tienes $ suficientes', true); startGhost(d); b.classList.add('sel'); });
     it.appendChild(b);
   }
   refreshCatalog();
@@ -2957,7 +2997,7 @@ function genderSw() {
 function runLoading() {
   const L = $('#loading'), f = $('#ldFill'), t = $('#ldTxt');
   const steps = ['Cargando el vecindario…', 'Plantando los árboles…', 'Amueblando la casa…', 'Despertando a los Sims…', 'Afinando el piano…', '¡Todo listo!'];
-  const tips = ['Un Sim con la vejiga llena puede tener un accidente. ¡Cuidado!', 'Trabaja en el ordenador para ganar §.', 'Ducharse y dormir mantienen al Sim de buen humor.', 'Acaricia a Mochi para subir la diversión.'];
+  const tips = ['Un Sim con la vejiga llena puede tener un accidente. ¡Cuidado!', 'Trabaja en el ordenador para ganar $.', 'Ducharse y dormir mantienen al Sim de buen humor.', 'Acaricia a Mochi para subir la diversión.'];
   $('#ldTip').textContent = 'Consejo: ' + tips[Math.floor(Math.random() * tips.length)];
   let i = 0;
   const step = () => {
@@ -3038,7 +3078,7 @@ const jobLvl = () => JT.filter(t => PROG.jobs >= t).length;
 function renderSkills() {
   const p = $('#skills'); if (!p || p.hidden) return;
   const jl = jobLvl(), nx = JT[jl];
-  let h = `<h3>${S.name}</h3><div class="job"><b>${CAREER[jl]}</b><span>§${420 + PAY[jl]} por jornada</span><small>${nx ? 'Ascenso en ' + (nx - PROG.jobs) + ' jornada(s)' : 'Puesto máximo'}</small></div>`;
+  let h = `<h3>${S.name}</h3><div class="job"><b>${CAREER[jl]}</b><span>$${420 + PAY[jl]} por jornada</span><small>${nx ? 'Ascenso en ' + (nx - PROG.jobs) + ' jornada(s)' : 'Puesto máximo'}</small></div>`;
   for (const k in SKILLS) {
     const l = skLvl(k), xp = PROG.xp[k] || 0, a = XPT[l - 1] || 0, b = XPT[l], f = b ? (xp - a) / (b - a) : 1;
     h += `<div class="sk"><span>${SKILLS[k]}</span><div class="pips">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= l ? 'f' : ''}"></i>`).join('')}</div><div class="bar"><i style="width:${Math.round(f * 100)}%;background:#6fdc3c"></i></div></div>`;
@@ -3082,13 +3122,13 @@ let dRoom = ROOMS[0];
 function renderDecor() {
   const p = $('#decor'); if (p.hidden) return; const d = DEC[dRoom.name] || {};
   p.innerHTML = '<h3>Decorar</h3><div class="dtabs">' + ROOMS.map((r, i) => `<button class="btn sm${r === dRoom ? ' on' : ''}" data-a="room" data-v="${i}">${r.name}</button>`).join('') + '</div>' +
-    `<div class="dl">Suelo <small>§${FP}</small></div><div class="dsw">` + FLOORS.map((f, i) => `<button class="fsw${d.f === i ? ' on' : ''}" data-a="floor" data-v="${i}" title="${f[0]}" aria-label="${f[0]}" style="background-image:url(${FPREV[i]})"></button>`).join('') + '</div>' +
-    `<div class="dl">Paredes <small>§${WP}</small></div><div class="dsw">` + WALLC.map(c => `<button class="sw${d.w === c ? ' on' : ''}" data-a="wall" data-v="${c}" style="background:#${c.toString(16).padStart(6, '0')}" aria-label="Color de pared"></button>`).join('') + '</div>';
+    `<div class="dl">Suelo <small>$${FP}</small></div><div class="dsw">` + FLOORS.map((f, i) => `<button class="fsw${d.f === i ? ' on' : ''}" data-a="floor" data-v="${i}" title="${f[0]}" aria-label="${f[0]}" style="background-image:url(${FPREV[i]})"></button>`).join('') + '</div>' +
+    `<div class="dl">Paredes <small>$${WP}</small></div><div class="dsw">` + WALLC.map(c => `<button class="sw${d.w === c ? ' on' : ''}" data-a="wall" data-v="${c}" style="background:#${c.toString(16).padStart(6, '0')}" aria-label="Color de pared"></button>`).join('') + '</div>';
 }
 function decorBuy(a, v) {
   const d = DEC[dRoom.name] || (DEC[dRoom.name] = {}), price = a === 'floor' ? FP : WP, key = a === 'floor' ? 'f' : 'w';
   if (d[key] === v) return;
-  if (G.money < price) { toast('No tienes § suficientes', true); return; }
+  if (G.money < price) { toast('No tienes $ suficientes', true); return; }
   G.money -= price; d[key] = v; if (a === 'floor') setFloor(dRoom, v); else setWall(dRoom, v);
   try { localStorage.setItem('cdcDecor', JSON.stringify(DEC)); } catch (e) { /* nada */ }
   saveSoon(); toast(a === 'floor' ? 'Suelo nuevo en ' + dRoom.name : 'Paredes nuevas en ' + dRoom.name); note(523.3, .05, .4); renderDecor();
@@ -3102,7 +3142,7 @@ const WL = {
   cook: { t: 'Cocinar algo rico', a: 'cook' }, shower: { t: 'Darse una ducha', a: 'shower' }, play: { t: 'Tocar el piano', a: 'play' }, paint: { t: 'Pintar un cuadro', a: 'paint' },
   run: { t: 'Hacer ejercicio', a: 'run' }, read: { t: 'Leer un libro', a: 'read' }, tv: { t: 'Ver la tele', a: 'tv' }, work: { t: 'Ir a trabajar', a: 'work' },
   sleep: { t: 'Dormir bien', a: 'sleep' }, game: { t: 'Jugar videojuegos', a: 'game' }, eat: { t: 'Comer algo', a: 'eat' },
-  happy: { t: 'Estar radiante (ánimo 80+)', c: () => S.mood >= 80 }, clean: { t: 'Tener la higiene al 100%', c: () => S.needs.hygiene >= 98 }, rich: { t: 'Juntar §10.000', c: () => G.money >= 10000 },
+  happy: { t: 'Estar radiante (ánimo 80+)', c: () => S.mood >= 80 }, clean: { t: 'Tener la higiene al 100%', c: () => S.needs.hygiene >= 98 }, rich: { t: 'Juntar $10.000', c: () => G.money >= 10000 },
 };
 const ASP = [3, 7, 12, 20], ASPN = ['Novato', 'Aspirante', 'Realizado', 'Estrella', 'Leyenda'];
 const W = { slots: [], pts: 0 }; try { Object.assign(W, JSON.parse(localStorage.getItem('cdcWants') || '{}')); } catch (e) { /* sin guardado */ }
@@ -3112,7 +3152,7 @@ W.slots = W.slots.filter(k => WL[k]); while (W.slots.length < 4) W.slots.push(ne
 function fulfill(i) {
   const w = WL[W.slots[i]], pay = 150 + aspLvl() * 30, b = aspLvl();
   G.money += pay; W.pts++; W.slots[i] = null; W.slots[i] = newWant();
-  toast('Deseo cumplido: ' + w.t + ' (+§' + pay + ')'); for (let k = 0; k < 4; k++) emit('heart', S.pos.x + (k - 1.5) * .25, S.y + 2.2, S.pos.z, 0, .6, 0, 1.6, .28);
+  toast('Deseo cumplido: ' + w.t + ' (+$' + pay + ')'); for (let k = 0; k < 4; k++) emit('heart', S.pos.x + (k - 1.5) * .25, S.y + 2.2, S.pos.z, 0, .6, 0, 1.6, .28);
   note(523.3, .06, .4); setTimeout(() => note(659.3, .06, .4), 110); setTimeout(() => note(784, .06, .6), 220);
   if (aspLvl() > b) setTimeout(() => toast('¡Aspiración: ahora eres ' + ASPN[aspLvl()] + '!'), 900);
   try { localStorage.setItem('cdcWants', JSON.stringify(W)); } catch (e) { /* nada */ } renderSkills();
@@ -3136,7 +3176,7 @@ function moodlets() {
     W.slots.map(k => `<div class="wt"><i></i>${WL[k].t}</div>`).join('') + `<h3 class="h2">Estado de ánimo</h3><div class="mo">${moodlets()}</div>`);
   p.scrollTop = sc; }; }
 setInterval(() => { const p = $('#skills'); if (p && !p.hidden) renderSkills(); }, 4000);
-let _rb = ''; addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || !e.key || e.key.length !== 1) return; _rb = (_rb + e.key.toLowerCase()).slice(-7); if (_rb === 'rosebud') { G.money += 1000; toast('Rosebud: +§1.000'); note(880, .06, .5); } });
+let _rb = ''; addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || !e.key || e.key.length !== 1) return; _rb = (_rb + e.key.toLowerCase()).slice(-7); if (_rb === 'rosebud') { G.money += 1000; toast('Rosebud: +$1.000'); note(880, .06, .5); } });
 /* ===== Segunda tanda de muebles ===== */
 const SITA = [{ id: 'sit', label: 'Sentarse', min: 30, fx: { fun: 8, energy: 5 }, pose: 'sit', spots: [{ at: [0, .08, 0, .38], stand: [0, 1] }] }];
 def('pouf', { name: 'Puf', cat: 'sala', price: 120, w: 1, d: 1, seat: true, acts: SITA, build(g) {
@@ -3226,10 +3266,10 @@ setInterval(() => {
   if (t !== WX.target) { WX.target = t; toast(t ? 'Empieza a llover' : 'Dejó de llover'); }
 }, 1000);
 const EVT = [
-  ['Llegó una carta con un premio: +§250', () => { G.money += 250; }], ['Un vecino te regaló un pastel casero', () => { S.needs.hunger = Math.min(100, S.needs.hunger + 25); }],
-  ['Encontraste §50 en el bolsillo de un abrigo viejo', () => { G.money += 50; }], ['Una amiga te llamó y te alegró el día', () => { S.needs.fun = Math.min(100, S.needs.fun + 20); }],
-  ['Encontraste una moneda en el sofá: +§30', () => { G.money += 30; }], ['Suena música en el vecindario', () => { S.needs.fun = Math.min(100, S.needs.fun + 10); }],
-  ['El cartero dejó un paquete: +§180', () => { G.money += 180; }],
+  ['Llegó una carta con un premio: +$250', () => { G.money += 250; }], ['Un vecino te regaló un pastel casero', () => { S.needs.hunger = Math.min(100, S.needs.hunger + 25); }],
+  ['Encontraste $50 en el bolsillo de un abrigo viejo', () => { G.money += 50; }], ['Una amiga te llamó y te alegró el día', () => { S.needs.fun = Math.min(100, S.needs.fun + 20); }],
+  ['Encontraste una moneda en el sofá: +$30', () => { G.money += 30; }], ['Suena música en el vecindario', () => { S.needs.fun = Math.min(100, S.needs.fun + 10); }],
+  ['El cartero dejó un paquete: +$180', () => { G.money += 180; }],
 ];
 let evtT = 80;
 setInterval(() => {
@@ -3242,7 +3282,7 @@ const RT = [40, 100, 200], RLN = ['Conocido', 'Amigo', 'Buen amigo', 'Mejor amig
 const relLvl = () => RT.filter(t => REL.pts >= t).length;
 function addRel(n) {
   const b = relLvl(); REL.pts = Math.max(0, REL.pts + n); const a = relLvl();
-  if (a > b) { G.money += a * 200; toast('¡' + REL.name + ' ahora es tu ' + RLN[a].toLowerCase() + '! +§' + a * 200); note(523.3, .06, .4); setTimeout(() => note(784, .06, .6), 150); }
+  if (a > b) { G.money += a * 200; toast('¡' + REL.name + ' ahora es tu ' + RLN[a].toLowerCase() + '! +$' + a * 200); note(523.3, .06, .4); setTimeout(() => note(784, .06, .6), 150); }
   try { localStorage.setItem('cdcRel', JSON.stringify(REL)); } catch (e) { /* nada */ } renderSkills();
 }
 setInterval(() => { if (G.started && G.speed && VIS.st === 'chat') addRel(1); }, 1000);
@@ -3305,7 +3345,7 @@ def('screen', { name: 'Biombo', cat: 'muros', price: 90, w: 2, d: 1, build(g) {
 } });
 def('column', { name: 'Columna', cat: 'muros', price: 60, w: 1, d: 1, part: true, build(g) { cy(g, .2, .22, WH - .3, 0xeae6da, 0, .15, 0); cy(g, .28, .28, .15, 0xd8d4c8, 0, 0, 0); cy(g, .28, .28, .15, 0xd8d4c8, 0, WH - .15, 0); } });
 setInterval(() => { for (const o of objects) { if (!o.def || !o.def.part || !o.group) continue; const t = G.wall === 'down' ? .36 : G.wall === 'up' ? 1 : (CAM.pitch > 1.05 ? 1 : .62); o.group.scale.y += (t - o.group.scale.y) * .25; } }, 80);
-document.body.insertAdjacentHTML('beforeend', '<div id="rotate"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="44" rx="5" fill="none" stroke="#fff" stroke-width="4"/><circle cx="32" cy="43" r="2.5" fill="#fff"/></svg><b>Gira tu dispositivo</b><span>Casa Dulce Casa se juega en horizontal</span></div>');
+document.body.insertAdjacentHTML('beforeend', '<div id="rotate"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="6" width="24" height="44" rx="5" fill="none" stroke="#fff" stroke-width="4"/><circle cx="32" cy="43" r="2.5" fill="#fff"/></svg><b>Gira tu dispositivo</b><span>Pennywhistle Court se juega en horizontal</span></div>');
 /* ===== Teléfono, trabajo con horario y facturas =====
    - Teléfono (botón en el dock): invitar al vecino, pedir comida a domicilio,
      pedir el día libre. Ver facturas pendientes en el propio panel.
@@ -3340,11 +3380,11 @@ function returnFromWork() {
   const pay = 420 + PAY[jobLvl()];
   G.money += pay; JOB.atWork = false; JOB.needsSnap = null; jobSave();
   S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y;
-  sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0; S.atY = 0; S.autoT = 2;
+  sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
   S.needs.energy = clamp(S.needs.energy - 18, 0, 100);
   S.needs.hunger = clamp(S.needs.hunger - 15, 0, 100);
   S.needs.fun = clamp(S.needs.fun - 8, 0, 100);
-  toast('De vuelta del trabajo  +§' + pay);
+  toast('De vuelta del trabajo  +$' + pay);
   note(659.3, .06, .5); setTimeout(() => note(784, .06, .6), 140);
   if (jobLvl() > b) toast('¡Ascenso! Ahora eres ' + CAREER[jobLvl()]);
   try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ }
@@ -3363,21 +3403,21 @@ function billArrive() {
   const amount = Math.round((60 + val * 0.02) / 5) * 5;
   BILLS.list.push({ id: Date.now(), day: G.day, base: amount, amount, dueDay: G.day + 3 });
   BILLS.lastBillDay = G.day; billsSave(); setMailboxFlag(true);
-  toast('Llegaron facturas al buzón: §' + amount + ' · vence en 3 días'); note(440, .06, .5);
+  toast('Llegaron facturas al buzón: $' + amount + ' · vence en 3 días'); note(440, .06, .5);
 }
 function payBills() {
   const total = billsTotal();
   if (!BILLS.list.length) { toast('No tienes facturas pendientes'); return false; }
-  if (G.money < total) { toast('No tienes § suficientes para pagar §' + total, true); return false; }
+  if (G.money < total) { toast('No tienes $ suficientes para pagar $' + total, true); return false; }
   G.money -= total; BILLS.list = []; billsSave(); setMailboxFlag(false);
-  toast('Facturas pagadas  −§' + total); note(659.3, .06, .5); saveSoon(); return true;
+  toast('Facturas pagadas  −$' + total); note(659.3, .06, .5); saveSoon(); return true;
 }
 function mailboxMenu() {
   if (!BILLS.list.length) return [{ label: 'Sin facturas', sub: 'Todo al día', run() { toast('No tienes facturas pendientes'); } }];
   const total = billsTotal(), od = billsOverdue();
   return [
-    { label: 'Pagar facturas', sub: '§' + total + (od ? ' · ¡vencidas!' : ''), run() { if (payBills()) renderPhone(); } },
-    { label: 'Ver facturas', sub: BILLS.list.length + ' pendiente(s)', run() { toast(BILLS.list.map(b => '§' + b.amount + ' · día ' + b.dueDay).join('  ')); } },
+    { label: 'Pagar facturas', sub: '$' + total + (od ? ' · ¡vencidas!' : ''), run() { if (payBills()) renderPhone(); } },
+    { label: 'Ver facturas', sub: BILLS.list.length + ' pendiente(s)', run() { toast(BILLS.list.map(b => '$' + b.amount + ' · día ' + b.dueDay).join('  ')); } },
   ];
 }
 /* ---- Teléfono ---- */
@@ -3386,11 +3426,11 @@ function renderPhone() {
   const p = $('#phone'); if (!p || p.hidden) return;
   const jl = jobLvl(), pay = 420 + PAY[jl], total = billsTotal();
   p.innerHTML = '<h3 style="margin:0 0 6px;font:400 22px var(--display);color:var(--navy)">Teléfono</h3>'
-    + '<div style="font-weight:800;color:#3a4f7a;margin-bottom:6px">' + CAREER[jl] + ' · §' + pay + ' por día · lun–vie 9:00–17:00' + (JOB.atWork ? ' · en el trabajo' : JOB.skipDay === G.day ? ' · hoy día libre' : '') + '</div>'
-    + '<div style="font-weight:800;color:#3a4f7a;margin-bottom:8px">Facturas: ' + (total ? '§' + total + ' pendientes — toca el buzón' : 'al día') + '</div>'
+    + '<div style="font-weight:800;color:#3a4f7a;margin-bottom:6px">' + CAREER[jl] + ' · $' + pay + ' por día · lun–vie 9:00–17:00' + (JOB.atWork ? ' · en el trabajo' : JOB.skipDay === G.day ? ' · hoy día libre' : '') + '</div>'
+    + '<div style="font-weight:800;color:#3a4f7a;margin-bottom:8px">Facturas: ' + (total ? '$' + total + ' pendientes — toca el buzón' : 'al día') + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px">'
     + '<button class="btn" data-a="invite" style="text-align:left">Invitar a ' + REL.name + '</button>'
-    + '<button class="btn" data-a="food" style="text-align:left">Pedir comida a domicilio · §35 · ~30 min</button>'
+    + '<button class="btn" data-a="food" style="text-align:left">Pedir comida a domicilio · $35 · ~30 min</button>'
     + '<button class="btn" data-a="dayoff" style="text-align:left">Pedir el día libre</button>'
     + '</div>';
 }
@@ -3400,7 +3440,7 @@ function phoneAct(a) {
     if (!VIS.invite()) { toast('El vecino está ocupado ahora mismo', true); return; }
     note(659.3, .06, .5); addRel(2);
   } else if (a === 'food') {
-    if (G.money < 35) { toast('No tienes § suficientes', true); return; }
+    if (G.money < 35) { toast('No tienes $ suficientes', true); return; }
     G.money -= 35; DELIVERY.atAbs = jobAbs() + 30; toast('Pedido hecho · llega en ~30 min'); note(523.3, .05, .4); saveSoon();
   } else if (a === 'dayoff') {
     if (JOB.atWork) { toast('Ya estás en el trabajo', true); return; }
@@ -3446,79 +3486,203 @@ setInterval(() => {
 /* Mientras está en el trabajo, que no piense ni actúe solo; al reiniciar el mundo, fuera trabajo y facturas */
 { const _th = think; think = function (dt) { if (S.state === 'away') return; _th(dt); }; }
 { const _rw = resetWorld; resetWorld = function () { _rw(); JOB.atWork = false; JOB.needsSnap = null; JOB.lastShift = 0; JOB.skipDay = 0; JOB.remindedDay = 0; BILLS.list = []; BILLS.lastBillDay = 0; BILLS.feeDay = 0; DELIVERY.atAbs = 0; setMailboxFlag(false); try { localStorage.removeItem('cdcJob'); localStorage.removeItem('cdcBills'); } catch (e) { /* nada */ } }; }
-/* ===== v3: arreglos y mejoras estilo Los Sims 3 ===== */
-/* Un solo panel flotante abierto a la vez (Teléfono / Perfil / Decorar) */
-function closeFloats(except) {
-  for (const id of ['skills', 'decor', 'phone']) {
-    if (id === except) continue;
-    const p = $('#' + id), b = $('#btn' + id[0].toUpperCase() + id.slice(1));
-    if (p) p.hidden = true; if (b) b.classList.remove('on');
-  }
-}
-for (const id of ['skills', 'decor', 'phone']) {
-  const b = $('#btn' + id[0].toUpperCase() + id.slice(1));
-  if (b) b.addEventListener('click', () => { if (!$('#' + id).hidden) closeFloats(id); });
-}
-/* No se puede dar órdenes mientras el Sim está en el trabajo */
-{ const _oc3 = onClick; onClick = function (cx, cy) { if (G.started && G.mode === 'live' && JOB.atWork) { toast('Está en el trabajo hasta las 17:00'); return; } _oc3(cx, cy); }; }
 
-/* Los muebles redefinidos más arriba perdieron sus acciones (Parrilla, Caballete, Armario…): se restauran */
-const FRONT = (x = 0, z = 1, d = .75) => [{ at: [x, d, Math.PI, 0], stand: [x, z] }];
-Object.assign(CAT.easel, { acts: [{ id: 'paint', label: 'Pintar un cuadro', min: 90, fx: { fun: 45, energy: -6 }, earn: 160, pose: 'cook', spots: FRONT() }] });
-Object.assign(CAT.bbq, { out: true, acts: [{ id: 'grill', label: 'Asar', min: 35, fx: { hunger: 62, fun: 8 }, pose: 'cook', spots: FRONT(), cost: 25 }] });
-Object.assign(CAT.fireplace, { acts: [{ id: 'warm', label: 'Calentarse junto al fuego', min: 30, fx: { fun: 16, energy: 8 }, pose: 'idle', spots: FRONT(0, 1, .8) }] });
-Object.assign(CAT.aquarium, { acts: [{ id: 'fish', label: 'Mirar los peces', min: 20, fx: { fun: 22 }, pose: 'idle', spots: FRONT(0, 1, .75) }] });
-Object.assign(CAT.wardrobe, { acts: [{ id: 'dress', label: 'Cambiarse de ropa', min: 6, fx: { fun: 8 }, pose: 'wash', dress: true, spots: [{ at: [-.5, .65, Math.PI, 0], stand: [-.5, 1] }, { at: [.5, .65, Math.PI, 0], stand: [.5, 1] }] }] });
-Object.assign(CAT.telescope, { anywhere: true, acts: [{ id: 'stars', label: 'Mirar las estrellas', min: 30, fx: { fun: 28 }, pose: 'idle', spots: FRONT(0, 1, .6) }] });
-Object.assign(CAT.fountain, { out: true, acts: [{ id: 'wish', label: 'Pedir un deseo', min: 5, fx: { fun: 10 }, pose: 'wave', spots: [{ at: [0, 1.3, Math.PI, 0], stand: [0, 1.6] }] }] });
-Object.assign(CAT.gbench, { anywhere: true, acts: [{ id: 'sit', label: 'Sentarse', min: 30, fx: { fun: 14, energy: 6 }, pose: 'sit', spots: [{ at: [-.45, 0, 0, .45], stand: [-.5, 1] }, { at: [.45, 0, 0, .45], stand: [.5, 1] }] }] });
-Object.assign(CAT.turntable, { acts: [{ id: 'vinyl', label: 'Escuchar discos', min: 25, fx: { fun: 24 }, pose: 'dance', spots: FRONT(0, 1, .8) }] });
-Object.assign(CAT.whiteboard, { acts: [{ id: 'study', label: 'Estudiar en la pizarra', min: 45, fx: { fun: 8, energy: -6 }, pose: 'chess', spots: [{ at: [-.4, .5, Math.PI, 0], stand: [-.5, 1] }, { at: [.4, .5, Math.PI, 0], stand: [.5, 1] }] }] });
-Object.assign(CAT.planter, { anywhere: true, acts: [{ id: 'water', label: 'Regar las flores', min: 15, fx: { fun: 8, energy: -2 }, pose: 'wash', spots: FRONT(0, 1, .65) }] });
-['parasol', 'statue', 'kidpool', 'doghouse', 'lamppost'].forEach(k => { if (CAT[k]) CAT[k].out = true; });
-/* Las lámparas redefinidas ya no iluminaban de noche: se les devuelve la luz */
-for (const [k, lvl, h, rad] of [['floorlamp', .9, 1.5, 6], ['nightstand', .6, .9, 4.5], ['lamppost', 1.1, 2.4, 9]]) {
-  const b0 = CAT[k].build;
-  CAT[k].build = function (g, o) { b0(g, o); const l = new THREE.PointLight(0xffd58a, 0, rad, 1.6); l.position.set(0, h, 0); g.add(l); nightLights.push({ light: l, level: lvl }); };
-}
-/* Poses nuevas: tocar la guitarra, levantar pesas, ajedrez/billar */
-{ const _p2 = poseTarget; poseTarget = function (name, t, ph) {
-  if (name === 'strum') { const T = _p2('idle', t, ph); T.tx = .05; T.hx = .22; T.ls = -.9; T.le = -1.3; T.rs = -.75 + Math.sin(t * 11) * .22; T.re = -1.1; return T; }
-  if (name === 'lift') { const T = _p2('idle', t, ph), k = (Math.sin(t * 3) + 1) / 2; T.ls = T.rs = lerp(-1.1, -2.9, k); T.le = T.re = lerp(-1.9, -.2, k); T.py = .92 - (1 - k) * .06; T.lh = T.rh = -.25 * (1 - k); T.lk = T.rk = .5 * (1 - k); T.tx = -.04; return T; }
-  if (name === 'chess') { const T = _p2('idle', t, ph); T.tx = .16; T.hx = .38; T.ls = -.8; T.le = -1.2; T.rs = -.95 + Math.sin(t * .8) * .35; T.re = -1.3; return T; }
-  return _p2(name, t, ph); }; }
-/* Habilidad nueva: Jardinería */
-SKILLS.jardineria = 'Jardinería';
-Object.assign(ACTSK, { water: 'jardineria', strum: 'musica', lift: 'ejercicio', chess: 'logica', study: 'logica', pool: 'logica' });
-Object.assign(WL, { strum: { t: 'Tocar la guitarra', a: 'strum' }, lift: { t: 'Levantar pesas', a: 'lift' }, chess: { t: 'Jugar ajedrez', a: 'chess' }, water: { t: 'Regar las flores', a: 'water' }, pool: { t: 'Jugar billar', a: 'pool' } });
-/* Muebles nuevos */
-def('guitar', { name: 'Guitarra', cat: 'estudio', price: 380, w: 1, d: 1, build(g) {
-  bx(g, .4, .04, .3, 0x2a2a2e, 0, 0, 0); bx(g, .04, .5, .04, 0x2a2a2e, -.12, .04, 0, { rz: .15 }); bx(g, .04, .5, .04, 0x2a2a2e, .12, .04, 0, { rz: -.15 });
-  sp(g, .2, 0xc9693f, 0, .72, 0).scale.set(1, 1.1, .35); sp(g, .14, 0xc9693f, 0, 1.0, 0).scale.set(1, 1, .35);
-  cy(g, .06, .06, .02, 0x15110f, 0, .72, .07, { rx: Math.PI / 2 }); bx(g, .06, .6, .03, 0x5a3a22, 0, 1.05, 0); bx(g, .09, .14, .03, 0x3a2418, 0, 1.65, 0);
-} , acts: [{ id: 'strum', label: 'Tocar la guitarra', min: 50, fx: { fun: 34 }, pose: 'strum', spots: FRONT(0, 1, .8) }] });
-def('weights', { name: 'Banco de pesas', cat: 'estudio', price: 520, w: 1, d: 1, build(g) {
-  bx(g, .4, .1, 1.0, 0x2a2e36, 0, .4, -.05, { r: .03 }); bx(g, .06, .4, .06, STEEL, -.15, 0, .3, { metal: .7 }); bx(g, .06, .4, .06, STEEL, .15, 0, .3, { metal: .7 });
-  bx(g, .06, .4, .06, STEEL, -.15, 0, -.4, { metal: .7 }); bx(g, .06, .4, .06, STEEL, .15, 0, -.4, { metal: .7 });
-  cy(g, .02, .02, 1.3, STEEL, 0, 1.0, -.35, { rz: Math.PI / 2, metal: .8 });
-  for (const x of [-.55, .55]) cy(g, .17, .17, .05, 0x15171b, x, 1.0, -.35, { rz: Math.PI / 2 });
-} , acts: [{ id: 'lift', label: 'Levantar pesas', min: 40, fx: { fun: 12, energy: -20, hygiene: -20, hunger: -10 }, pose: 'lift', spots: FRONT(0, 1, .75) }] });
-def('chess', { name: 'Mesa de ajedrez', cat: 'estudio', price: 280, w: 1, d: 1, build(g) {
-  bx(g, .9, .05, .9, WOOD, 0, .72, 0, { r: .02 }); legs(g, .9, .9, .72, WOOD_D, .06, .035); bx(g, .62, .02, .62, 0xf2e6c8, 0, .77, 0);
-  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2) bx(g, .155, .012, .155, 0x3a2a1a, -.232 + i * .155, .79, -.232 + j * .155);
-  for (const [x, z, c] of [[-.2, -.2, 0xfafafa], [.1, -.2, 0xfafafa], [-.1, .2, 0x20202a], [.2, .2, 0x20202a], [0, 0, 0xfafafa]]) cy(g, .03, .036, .12, c, x, .79, z);
-} , acts: [{ id: 'chess', label: 'Jugar ajedrez', min: 60, fx: { fun: 30, energy: -4 }, pose: 'chess', spots: FRONT(0, 1, .85) }] });
-def('jukebox', { name: 'Rocola', cat: 'sala', price: 700, w: 1, d: 1, build(g) {
-  bx(g, .8, 1.4, .5, 0xb8423a, 0, 0, 0, { r: .15 }); bx(g, .62, .5, .06, 0xffd23f, 0, .85, .24, { mat: glowMat(0xffd23f, .9) });
-  bx(g, .5, .35, .04, 0x2a2a2e, 0, .25, .24); bx(g, .3, .06, .04, 0xffffff, 0, .6, .25);
-} , acts: [{ id: 'jukebox', label: 'Poner música y bailar', min: 25, fx: { fun: 32, energy: -6 }, pose: 'dance', spots: FRONT(0, 1, .95) }] });
-def('pooltable', { name: 'Mesa de billar', cat: 'sala', price: 1600, w: 3, d: 2, build(g) {
-  bx(g, 2.8, .14, 1.6, 0x5a3a22, 0, .72, 0, { r: .03 }); bx(g, 2.46, .03, 1.26, 0x2f8f4a, 0, .86, 0);
-  for (const x of [-1.2, 1.2]) for (const z of [-.65, .65]) cy(g, .1, .08, .72, 0x3a2418, x, 0, z);
-  [[-.6, 0, 0xffd23f], [-.5, .05, 0xe8564a], [-.5, -.05, 0x3a8fe0], [-.4, 0, 0x20202a], [.5, 0, 0xfafafa]].forEach(([x, z, c]) => sp(g, .045, c, x, .93, z));
-  bx(g, 1.2, .025, .025, 0xe8d8a8, .55, .98, .25, { ry: .2 });
-} , acts: [{ id: 'pool', label: 'Jugar billar', min: 50, fx: { fun: 36, energy: -4 }, pose: 'chess', spots: [{ at: [-1, 1.2, Math.PI, 0], stand: [-1, 1.5] }, { at: [1, 1.2, Math.PI, 0], stand: [1, 1.5] }] }] });
+/* ===== Parche 3: más cosas de Los Sims, arreglos y trucos ===== */
+{
+  const NUEVOS = ['coffee', 'pooltable', 'arcade', 'weights', 'hammock'];
+  def('coffee', { name: 'Cafetera', cat: 'cocina', price: 130, w: 1, d: 1, build(g) {
+    counterBase(g, 1);
+    bx(g, .3, .4, .28, 0x2b2f38, 0, .92, -.15, { r: .03 });
+    cy(g, .07, .07, .14, 0xdfe9f2, 0, .92, .02, { extra: { transparent: true, opacity: .7 } });
+    bx(g, .05, .03, .02, 0xff4d3a, .1, 1.24, -.0, { mat: glowMat(0xff4d3a, 1) });
+  }, acts: [{ id: 'coffee', label: 'Hacer café', min: 6, fx: { energy: 30, fun: 3 }, pose: 'fridge', spots: [{ at: [0, .65, Math.PI, 0], stand: [0, 1] }], cost: 4 }] });
+  def('pooltable', { name: 'Mesa de billar', cat: 'sala', price: 1500, w: 2, d: 3, build(g) {
+    legs(g, 1.7, 2.7, .8, WOOD_D, .12, .07);
+    bx(g, 2, .2, 3, WOOD_D, 0, .7, 0, { r: .03 });
+    bx(g, 1.7, .05, 2.6, 0x2f8a4a, 0, .9, 0);
+    for (const z of [-1.4, 1.4]) bx(g, 1.9, .1, .12, WOOD, 0, .9, z);
+    for (const x of [-.9, .9]) bx(g, .12, .1, 2.9, WOOD, x, .9, 0);
+    [[0xf2f2f2, 0, .7], [0xe8564a, -.08, -.6], [0xffd23f, .08, -.7], [0x3a8fe0, 0, -.8]].forEach(([c, x, z]) => sp(g, .05, c, x, .98, z));
+  }, acts: [{ id: 'billiards', label: 'Jugar al billar', min: 40, fx: { fun: 40, energy: -5 }, pose: 'cook', spots: [{ at: [0, 1.75, Math.PI, 0], stand: [0, 2] }] }] });
+  def('arcade', { name: 'Máquina arcade', cat: 'sala', price: 900, w: 1, d: 1, build(g) {
+    bx(g, .7, 1.7, .6, 0x2a2f6a, 0, 0, -.1, { r: .03 });
+    bx(g, .5, .4, .02, 0x7fe0ff, 0, 1.05, .21, { mat: glowMat(0x4dd0ff, 1) });
+    bx(g, .6, .12, .3, 0x1c2050, 0, .85, .15);
+    sp(g, .04, 0xe8564a, -.1, .94, .18); sp(g, .03, 0xffd23f, .1, .93, .18);
+    bx(g, .7, .2, .05, 0xffd23f, 0, 1.5, .2, { mat: glowMat(0xffd23f, .6) });
+  }, acts: [{ id: 'arcade', label: 'Jugar al arcade', min: 30, fx: { fun: 38, energy: -4 }, pose: 'cook', spots: [{ at: [0, .75, Math.PI, 0], stand: [0, 1] }] }] });
+  def('weights', { name: 'Banco de pesas', cat: 'estudio', price: 480, w: 1, d: 1, build(g) {
+    bx(g, .4, .1, .9, 0x2a2e36, 0, .42, 0, { r: .03 }); legs(g, .3, .8, .42, STEEL, .05, .03);
+    bx(g, 1, .04, .04, STEEL, 0, 1.0, -.3, { metal: .8 });
+    for (const x of [-.4, .4]) cy(g, .16, .16, .06, 0x2a2e36, x, .97, -.3, { rz: Math.PI / 2 });
+  }, acts: [{ id: 'lift', label: 'Levantar pesas', min: 35, fx: { fun: 12, energy: -16, hygiene: -18, hunger: -8 }, pose: 'dance', spots: [{ at: [0, .7, Math.PI, 0], stand: [0, 1] }] }] });
+  def('hammock', { name: 'Hamaca', cat: 'jardin', price: 320, w: 2, d: 1, out: true, seat: true, build(g) {
+    for (const x of [-.9, .9]) cy(g, .05, .06, 1.2, WOOD_D, x, 0, 0);
+    bx(g, 1.7, .05, .55, 0xe8564a, 0, .5, 0, { r: .02 });
+    bx(g, 1.7, .05, .12, 0xffd23f, 0, .52, .2);
+  }, acts: [{ id: 'rest', label: 'Descansar en la hamaca', min: 40, fx: { energy: 22, fun: 12 }, pose: 'sit', spots: [{ at: [0, .05, 0, .5], stand: [0, 1] }] }] });
+  ACTSK.lift = 'ejercicio'; ACTSK.arcade = 'logica'; ACTSK.billiards = 'logica';
+  WAVE_ACT.label = '¡Sul sul!';
 
+  /* etiqueta "Nuevo" en la tienda */
+  { const _bc = buildCatalog; buildCatalog = function () { _bc(); $$('.item').forEach(b => b.classList.toggle('nuevo', NUEVOS.includes(b.dataset.id))); }; }
+
+  /* Necesidades urgentes parpadean (<25%) */
+  setInterval(() => { $$('.need').forEach(n => { const i = n.querySelector('.bar i'); n.classList.toggle('low', !!i && parseFloat(i.style.width) < 25); }); }, 500);
+
+  /* Truco clásico: motherlode (+$50.000) */
+  { let buf = ''; addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || !e.key || e.key.length !== 1) return; buf = (buf + e.key.toLowerCase()).slice(-10); if (buf === 'motherlode') { G.money += 50000; toast('Motherlode: +$50.000'); note(988, .06, .6); saveSoon(); } }); }
+
+  /* Arreglo: la bandera del buzón vuelve a subir al cargar si hay facturas pendientes */
+  if (BILLS.list.length) setMailboxFlag(true);
+
+  /* Arreglo: reiniciar mientras trabaja dejaba al Sim invisible, y no borraba habilidades, deseos ni amistad */
+  { const _rw2 = resetWorld; resetWorld = function () {
+    _rw2(); sim.root.visible = true; S.state = 'idle';
+    PROG.xp = {}; PROG.jobs = 0; W.slots = []; while (W.slots.length < 4) W.slots.push(newWant()); W.pts = 0; REL.pts = 0;
+    try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); localStorage.setItem('cdcWants', JSON.stringify(W)); localStorage.setItem('cdcRel', JSON.stringify(REL)); } catch (e) { /* nada */ }
+    renderSkills();
+  }; }
+}
+
+/* ===== Parche 4: HUD compacto, más muebles, eventos y deseos de Los Sims ===== */
+{
+  const clock = $('.clock'), who = $('.who'), needs = $('#needs');
+  clock.appendChild($('#money'));
+  who.title = 'Toca para ocultar o mostrar las necesidades';
+  who.addEventListener('click', () => { needs.hidden = !needs.hidden; });
+  const menu = document.createElement('div'); menu.id = 'moreMenu'; menu.className = 'panel'; menu.hidden = true;
+  ['btnSkills', 'btnDecor', 'btnPhone', 'btnRoof', 'btnAuto', 'btnCam', 'btnSnd'].forEach(id => { const b = $('#' + id); if (b) menu.appendChild(b); });
+  const more = document.createElement('button'); more.className = 'btn'; more.id = 'btnMore'; more.textContent = 'Más';
+  $('#btnHelp').before(more); $('#hud').appendChild(menu);
+  const closeMenu = () => { menu.hidden = true; more.classList.remove('on'); };
+  more.addEventListener('click', () => { menu.hidden = !menu.hidden; more.classList.toggle('on', !menu.hidden); });
+  addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target) && e.target !== more) closeMenu(); }, true);
+  const PN = [['btnSkills', 'skills'], ['btnDecor', 'decor'], ['btnPhone', 'phone']];
+  PN.forEach(([b, p]) => $('#' + b).addEventListener('click', () => { PN.forEach(([ob, op]) => { if (op !== p) { $('#' + op).hidden = true; $('#' + ob).classList.remove('on'); } }); closeMenu(); }, true));
+
+  /* Más muebles */
+  const NUEVOS2 = ['stereo', 'minibar', 'guitar', 'trampoline', 'campfire', 'swing', 'veggies', 'boxing', 'microscope'];
+  def('stereo', { name: 'Equipo de música', cat: 'sala', price: 380, w: 1, d: 1, build(g) {
+    bx(g, .5, 1.1, .35, 0x2a2e36, 0, 0, -.1, { r: .03 }); for (const y of [.35, .75]) cy(g, .15, .15, .04, 0x8a9199, 0, y, .08, { rx: Math.PI / 2 });
+    bx(g, .3, .06, .02, 0x4dff8f, 0, 1.0, .08, { mat: glowMat(0x4dff8f, .9) });
+  }, acts: [{ id: 'dancemusic', label: 'Poner música y bailar', min: 25, fx: { fun: 30, energy: -8 }, pose: 'dance', spots: [{ at: [0, 1.1, Math.PI, 0], stand: [0, 1] }] }] });
+  def('minibar', { name: 'Barra de batidos', cat: 'cocina', price: 620, w: 2, d: 1, build(g) {
+    bx(g, 1.9, 1.0, .5, WOOD_D, 0, 0, -.1, { r: .02 }); bx(g, 2, .06, .6, 0xe8dcc4, 0, 1.0, -.1);
+    for (const x of [-.5, .5]) { cy(g, .14, .14, .04, 0xe8564a, x, .62, .45); cy(g, .03, .03, .6, STEEL, x, 0, .45); }
+    cy(g, .06, .05, .16, 0xf2b134, .3, 1.06, -.1);
+  }, acts: [{ id: 'drink', label: 'Tomar un batido', min: 8, fx: { hunger: 18, fun: 6 }, pose: 'fridge', spots: [{ at: [0, .7, Math.PI, 0], stand: [0, 1] }], cost: 6 }] });
+  def('guitar', { name: 'Guitarra y amplificador', cat: 'estudio', price: 520, w: 1, d: 1, build(g) {
+    bx(g, .5, .5, .3, 0x1c1c22, .2, 0, -.1, { r: .02 }); cy(g, .08, .08, .02, 0x8a9199, .2, .25, .06, { rx: Math.PI / 2 });
+    bx(g, .1, .8, .05, 0x8a4a2a, -.2, .3, -.05, { rz: .15 }); sp(g, .15, 0xc0392b, -.27, .35, -.05, { sy: 1.2 });
+  }, acts: [{ id: 'guitar', label: 'Tocar la guitarra', min: 45, fx: { fun: 34, energy: -6 }, pose: 'dance', spots: [{ at: [0, .8, Math.PI, 0], stand: [0, 1] }] }] });
+  def('trampoline', { name: 'Trampolín', cat: 'jardin', price: 450, w: 2, d: 2, out: true, build(g) {
+    cy(g, .95, .95, .08, 0x2a2e36, 0, .35, 0); cy(g, .8, .8, .02, 0x3a8fe0, 0, .43, 0);
+    for (const [x, z] of [[-.8, -.8], [.8, -.8], [-.8, .8], [.8, .8]]) cy(g, .03, .03, .38, STEEL, x * .8, 0, z * .8);
+  }, acts: [{ id: 'jump', label: 'Saltar', min: 20, fx: { fun: 36, energy: -14, hygiene: -6 }, pose: 'dance', spots: [{ at: [0, 0, 0, .45], stand: [0, 1.5] }] }] });
+  def('campfire', { name: 'Fogata', cat: 'jardin', price: 260, w: 1, d: 1, out: true, build(g) {
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; bx(g, .5, .08, .08, 0x5a3a22, Math.cos(a) * .2, .05, Math.sin(a) * .2, { ry: -a }); }
+    cy(g, .1, .02, .35, 0xff7a1f, 0, .1, 0, { mat: glowMat(0xff7a1f, 1.2) }); cy(g, .05, .01, .25, 0xffd34d, 0, .15, 0, { mat: glowMat(0xffd34d, 1.4) });
+    cy(g, .14, .14, .3, WOOD, 0, 0, .75);
+  }, acts: [{ id: 'campfire', label: 'Sentarse junto al fuego', min: 40, fx: { fun: 20, energy: 6 }, pose: 'sit', spots: [{ at: [0, .75, Math.PI, .3], stand: [0, 1] }] }] });
+  def('swing', { name: 'Columpio', cat: 'jardin', price: 380, w: 2, d: 1, out: true, build(g) {
+    for (const x of [-.9, .9]) { bx(g, .06, 1.9, .06, WOOD_D, x, 0, -.2, { rx: .12 }); bx(g, .06, 1.9, .06, WOOD_D, x, 0, .2, { rx: -.12 }); }
+    bx(g, 1.9, .07, .07, WOOD_D, 0, 1.85, 0); bx(g, .5, .05, .25, 0xe8564a, 0, .5, 0);
+    for (const x of [-.22, .22]) cy(g, .01, .01, 1.35, STEEL, x, .5, 0);
+  }, acts: [{ id: 'swing', label: 'Columpiarse', min: 20, fx: { fun: 30, energy: -4 }, pose: 'sit', spots: [{ at: [0, 0, 0, .55], stand: [0, 1] }] }] });
+  def('veggies', { name: 'Huerto', cat: 'jardin', price: 300, w: 2, d: 1, out: true, build(g) {
+    bx(g, 1.9, .25, .9, 0x6b4a32, 0, 0, 0, { r: .02 }); bx(g, 1.7, .05, .7, 0x3a2a1a, 0, .25, 0);
+    for (let i = 0; i < 4; i++) { sp(g, .1, i % 2 ? 0xe8564a : 0xf2a134, -.6 + i * .4, .38, 0, { sy: .8 }); cy(g, .0, .1, .12, 0x4a9a45, -.6 + i * .4, .42, 0); }
+  }, acts: [{ id: 'harvest', label: 'Cosechar verduras', min: 20, fx: { hunger: 24, fun: 4 }, pose: 'cook', spots: [{ at: [0, .7, Math.PI, 0], stand: [0, 1] }] }] });
+  def('boxing', { name: 'Saco de boxeo', cat: 'estudio', price: 360, w: 1, d: 1, build(g) {
+    bx(g, .5, .06, .5, 0x2a2e36, 0, 0, 0); cy(g, .04, .04, 1.9, STEEL, 0, .06, -.2); bx(g, .06, .06, .5, STEEL, 0, 1.9, -.0);
+    cy(g, .17, .17, .8, 0xc0392b, 0, .8, .12);
+  }, acts: [{ id: 'box', label: 'Boxear', min: 25, fx: { fun: 14, energy: -14, hygiene: -16, hunger: -6 }, pose: 'dance', spots: [{ at: [0, .85, Math.PI, 0], stand: [0, 1] }] }] });
+  def('microscope', { name: 'Microscopio', cat: 'estudio', price: 520, w: 1, d: 1, build(g) {
+    bx(g, .5, .05, .4, 0x2a2e36, 0, .8, 0); cy(g, .04, .04, .35, 0xdfe3e8, 0, .85, -.1, { rx: -.3 }); bx(g, .05, .3, .05, 0xdfe3e8, 0, .85, -.15);
+    bx(g, .7, .8, .5, WOOD, 0, 0, 0, { r: .02 });
+  }, acts: [{ id: 'science', label: 'Investigar', min: 50, fx: { fun: 26, energy: -6 }, pose: 'cook', spots: [{ at: [0, .75, Math.PI, 0], stand: [0, 1] }] }] });
+  Object.assign(ACTSK, { guitar: 'musica', harvest: 'cocina', box: 'ejercicio', science: 'logica' });
+  { const _bc2 = buildCatalog; buildCatalog = function () { _bc2(); $$('.item').forEach(b => { if (NUEVOS2.includes(b.dataset.id)) b.classList.add('nuevo'); }); }; }
+
+  /* Deseos nuevos y eventos aleatorios */
+  Object.assign(WL, { coffee: { t: 'Hacer un café', a: 'coffee' }, billiards: { t: 'Jugar al billar', a: 'billiards' }, arcade: { t: 'Jugar al arcade', a: 'arcade' }, lift: { t: 'Levantar pesas', a: 'lift' },
+    jump: { t: 'Saltar en el trampolín', a: 'jump' }, guitar: { t: 'Tocar la guitarra', a: 'guitar' }, dancemusic: { t: 'Bailar con música', a: 'dancemusic' }, harvest: { t: 'Cosechar del huerto', a: 'harvest' } });
+  EVT.push(['Un vecino te regaló flores: +$60 y se alegra el día', () => { G.money += 60; S.needs.fun = Math.min(100, S.needs.fun + 15); addRel(1); }],
+    ['Tuviste una idea brillante mientras te duchabas', () => { S.needs.fun = Math.min(100, S.needs.fun + 18); }],
+    ['Llegó la factura de la luz con descuento: +$90', () => { G.money += 90; }],
+    ['Cenaste con un viejo amigo por teléfono', () => { S.needs.fun = Math.min(100, S.needs.fun + 12); S.needs.hunger = Math.min(100, S.needs.hunger + 10); }]);
+
+  /* Truco: klapaucius llena todas las necesidades */
+  { let buf = ''; addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' || !e.key || e.key.length !== 1) return; buf = (buf + e.key.toLowerCase()).slice(-10); if (buf === 'klapaucius') { for (const k in S.needs) S.needs[k] = 100; toast('Necesidades al máximo'); note(784, .06, .6); } }); }
+}
+
+/* ===== Parche 5: iconos dibujados a mano (estilo Los Sims), icono de dinero propio ===== */
+{
+  const ICO = {
+    hunger: '<path d="M4 11a8 6 0 0116 0z" fill="#f2a134"/><path d="M3.5 12.6q1.2 2 2.4 0t2.4 0 2.4 0 2.4 0 2.4 0 2.4 0 2.4 0v1.4H3.5z" fill="#5fbf4a"/><rect x="3.5" y="14" width="17" height="3" rx="1.5" fill="#8a4a2a"/><path d="M4 17.5h16v1a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 18.5z" fill="#f2a134"/>',
+    energy: '<path d="M13.5 2L5 13.5h5.8L9.6 22 19 9.8h-5.9z" fill="#ffd23f"/>',
+    bladder: '<rect x="7" y="2.5" width="10" height="6" rx="1.6" fill="#fff"/><path d="M5 10h14v1.8a7 7 0 01-4.2 6.4V21H9.2v-2.8A7 7 0 015 11.8z" fill="#dcebff"/>',
+    hygiene: '<circle cx="9.5" cy="14" r="6.2" fill="#bfe8ff"/><circle cx="17.5" cy="7.5" r="3.6" fill="#d9f2ff"/><circle cx="18" cy="17.5" r="2.6" fill="#bfe8ff"/><path d="M6 12a4 4 0 012.5-2.2" fill="none" stroke="#fff" stroke-width="1.6"/>',
+    fun: '<circle cx="12" cy="12" r="9.5" fill="#ffd23f"/><circle cx="8.8" cy="10" r="1.3" fill="#0e2860" stroke="none"/><circle cx="15.2" cy="10" r="1.3" fill="#0e2860" stroke="none"/><path d="M7.5 14c1.2 3 7.8 3 9 0" fill="none"/>',
+    money: '<rect x="1.5" y="5.5" width="21" height="13" rx="2.4" fill="#6fdc3c"/><path d="M12 8.2l3.4 3.8-3.4 3.8-3.4-3.8z" fill="#d9f7c3"/><circle cx="5.2" cy="12" r="1.1" fill="#d9f7c3" stroke="none"/><circle cx="18.8" cy="12" r="1.1" fill="#d9f7c3" stroke="none"/>',
+    house: '<path d="M5 11.5V21h5.2v-5.5h3.6V21H19V11.5L12 5z" fill="#fbf1d6"/><path d="M2.5 12.5L12 3.5l9.5 9" fill="none" stroke="#e8564a" stroke-width="2.6"/>',
+    hammer: '<g transform="rotate(-40 12 12)"><rect x="10.4" y="8" width="3.2" height="14" rx="1.2" fill="#a8744a"/><rect x="4.5" y="3" width="15" height="5.6" rx="1.6" fill="#c9ced6"/></g>',
+    wall3: '<rect x="2.5" y="3" width="19" height="18" rx="1.5" fill="#e8a98f"/><path d="M2.5 9h19M2.5 15h19M9 3v6M16 9v6M9 15v6" fill="none" stroke-width="1.2"/>',
+    wall2: '<rect x="2.5" y="9" width="19" height="12" rx="1.5" fill="#e8a98f"/><path d="M2.5 15h19M9 9v6M16 15v6" fill="none" stroke-width="1.2"/><path d="M2.5 5h19" stroke-dasharray="2 2.4" fill="none"/>',
+    wall1: '<rect x="2.5" y="15" width="19" height="6" rx="1.5" fill="#e8a98f"/><path d="M9 15v6" fill="none" stroke-width="1.2"/><path d="M2.5 11h19M2.5 7h19" stroke-dasharray="2 2.4" fill="none"/>',
+    more: '<circle cx="12" cy="12" r="9.5" fill="#cfe0ff"/><circle cx="7.5" cy="12" r="1.6" fill="#0e2860" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="#0e2860" stroke="none"/><circle cx="16.5" cy="12" r="1.6" fill="#0e2860" stroke="none"/>',
+    person: '<circle cx="12" cy="8" r="4.2" fill="#f0c9a4"/><path d="M3.8 21c0-5.2 3.6-7.6 8.2-7.6s8.2 2.4 8.2 7.6z" fill="#3a8fe0"/>',
+    paint: '<rect x="3" y="3.5" width="15" height="6" rx="1.8" fill="#e8564a"/><path d="M18 6.5h3v5.5h-9.5v3" fill="none"/><rect x="9.8" y="14.5" width="3.4" height="7" rx="1.2" fill="#a8744a"/>',
+    phone: '<rect x="6.5" y="2" width="11" height="20" rx="2.6" fill="#3a8fe0"/><rect x="8.2" y="4.6" width="7.6" height="11.6" rx="1" fill="#d9ecff" stroke="none"/><circle cx="12" cy="19.2" r="1.1" fill="#fff" stroke="none"/>',
+    roof: '<rect x="5" y="12" width="14" height="9" fill="#fbf1d6"/><path d="M1.8 13.2L12 3.6l10.2 9.6z" fill="#e8564a"/>',
+    plumb: '<path d="M12 1.8L19.5 12H4.5z" fill="#b6ff7a"/><path d="M12 22.2L19.5 12H4.5z" fill="#3fae1f"/>',
+    camera: '<rect x="2.5" y="7" width="19" height="13" rx="2.6" fill="#8a9199"/><path d="M8 7l1.5-3h5L16 7z" fill="#8a9199"/><circle cx="12" cy="13.5" r="4.2" fill="#d9ecff"/><circle cx="12" cy="13.5" r="1.9" fill="#3a8fe0" stroke="none"/>',
+    sound: '<path d="M3 9.2h4L12.5 5v14L7 14.8H3z" fill="#ffd23f"/><path d="M15.8 8.8a4.6 4.6 0 010 6.4M18.4 6a8.4 8.4 0 010 12" fill="none"/>',
+    move: '<path d="M12 2l3.4 3.8H13V11h5.2V8.6L22 12l-3.8 3.4V13H13v5.2h2.4L12 22l-3.4-3.8H11V13H5.8v2.4L2 12l3.8-3.4V11H11V5.8H8.6z" fill="#3a8fe0"/>',
+    rotate: '<path d="M19.2 12.5a7.2 7.2 0 11-2.6-5.5" fill="none" stroke="#3a8fe0" stroke-width="2.8"/><path d="M21.5 2.5v6.6h-6.6z" fill="#3a8fe0"/>',
+    tag: '<path d="M2.8 12.4V3.8h8.6L21.4 14l-7.4 7.4z" fill="#ffd23f"/><circle cx="7.4" cy="8.4" r="1.7" fill="#fff" stroke="none"/>',
+    ok: '<circle cx="12" cy="12" r="9.5" fill="#6fdc3c"/><path d="M7 12.4l3.5 3.5L17 9" fill="none" stroke="#fff" stroke-width="2.6"/>',
+    no: '<circle cx="12" cy="12" r="9.5" fill="#e8564a"/><path d="M8 8l8 8M16 8l-8 8" fill="none" stroke="#fff" stroke-width="2.6"/>',
+    sun: '<circle cx="12" cy="12" r="5" fill="#ffd23f"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1" fill="none" stroke="#ffd23f"/>',
+    moon: '<path d="M19 14.5A8 8 0 019.5 5a8 8 0 109.5 9.5z" fill="#f2f2d9"/>',
+    rain: '<path d="M7 15a4.6 4.6 0 01.2-9.1 5.8 5.8 0 0111 1.6A3.8 3.8 0 0117.5 15z" fill="#cfd8e6"/><path d="M8 18l-1 3M12.5 18l-1 3M17 18l-1 3" fill="none" stroke="#4db3ff" stroke-width="2"/>',
+    pizza: '<path d="M3 6.5c6-3.4 12-3.4 18 0L12 21z" fill="#f2b134"/><path d="M3 6.5c6-3.4 12-3.4 18 0" fill="none" stroke="#a8744a" stroke-width="2.6"/><circle cx="9.5" cy="9.5" r="1.5" fill="#e8564a" stroke="none"/><circle cx="14.5" cy="9.5" r="1.5" fill="#e8564a" stroke="none"/><circle cx="12" cy="14" r="1.5" fill="#e8564a" stroke="none"/>',
+    people: '<circle cx="8" cy="8" r="3.4" fill="#f0c9a4"/><circle cx="16.5" cy="9" r="3" fill="#e8b48a"/><path d="M1.8 20c0-4.4 2.8-6.2 6.2-6.2s6.2 1.8 6.2 6.2z" fill="#e8564a"/><path d="M13.5 14.4c.9-.4 1.9-.6 3-.6 3.2 0 5.7 1.7 5.7 6.2h-6.5" fill="#43b86a"/>',
+    sofa: '<rect x="2.5" y="10" width="19" height="7" rx="2.4" fill="#9b6be0"/><rect x="5" y="5.5" width="14" height="6" rx="2" fill="#b894f0"/><rect x="4" y="17" width="2.4" height="3" fill="#7b5133"/><rect x="17.6" y="17" width="2.4" height="3" fill="#7b5133"/>',
+    pot: '<path d="M3.5 10h17v3.5a6 6 0 01-6 6h-5a6 6 0 01-6-6z" fill="#c9ced6"/><path d="M1.8 11.5h1.7M20.5 11.5h1.7" fill="none" stroke-width="2"/><path d="M9 7c-1-1.5 1-2.5 0-4M14 7c-1-1.5 1-2.5 0-4" fill="none" stroke-width="1.4"/>',
+    tub: '<path d="M2.5 11.5h19v2a5 5 0 01-5 5h-9a5 5 0 01-5-5z" fill="#d9ecff"/><path d="M6.5 11.5V7a2.6 2.6 0 015.2 0" fill="none"/><path d="M6 18.5l-1 2.5M18 18.5l1 2.5" fill="none"/>',
+    bed: '<rect x="2.5" y="11" width="19" height="6" rx="1.6" fill="#7fb2f2"/><rect x="2.5" y="6" width="3.4" height="14" rx="1.2" fill="#a8744a"/><rect x="7" y="8.5" width="5.6" height="3.6" rx="1.8" fill="#fff"/>',
+    desk: '<rect x="2.5" y="3.5" width="19" height="12" rx="1.8" fill="#3a4f7a"/><rect x="4.5" y="5.5" width="15" height="8" rx="1" fill="#7fe0ff" stroke="none"/><rect x="9.5" y="15.5" width="5" height="3.4" fill="#8a9199"/><rect x="6.5" y="19" width="11" height="2.2" rx="1" fill="#a8744a"/>',
+    tree: '<circle cx="12" cy="9" r="7" fill="#5fbf4a"/><circle cx="7.5" cy="12" r="4" fill="#4a9a45"/><circle cx="16.5" cy="12" r="4" fill="#4a9a45"/><rect x="10.6" y="13" width="2.8" height="8.5" fill="#7b5133"/>'
+  };
+  const ico = n => '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" stroke="#0e2860" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round">' + ICO[n] + '</svg>';
+  const dress = (sel, n) => { const el = typeof sel === 'string' ? $(sel) : sel; if (el && !el.querySelector(':scope > .ic')) el.insertAdjacentHTML('afterbegin', ico(n)); };
+
+  /* Dinero: billete verde con rombo (como el cristal del Sim) */
+  document.documentElement.style.setProperty('--money-ic', 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="#0e2860" stroke-width="1.5" stroke-linejoin="round">' + ICO.money + '</svg>') + '")');
+
+  /* Necesidades solo con icono (como en Los Sims) */
+  Object.keys(NEED_LABEL).forEach((k, i) => { const n = $$('.need')[i]; if (!n) return; n.firstElementChild.innerHTML = ico(k); n.title = NEED_LABEL[k]; n.setAttribute('aria-label', NEED_LABEL[k]); });
+
+  /* Barra inferior, menú, edición */
+  dress('[data-mode=live]', 'house'); dress('[data-mode=build]', 'hammer');
+  dress('[data-wall=up]', 'wall3'); dress('[data-wall=auto]', 'wall2'); dress('[data-wall=down]', 'wall1');
+  dress('#btnMore', 'more'); dress('#btnSkills', 'person'); dress('#btnDecor', 'paint'); dress('#btnPhone', 'phone'); dress('#btnRoof', 'roof');
+  dress('#btnAuto', 'plumb'); dress('#btnCam', 'camera'); dress('#btnSnd', 'sound');
+  dress('#selMove', 'move'); dress('#selRot', 'rotate'); dress('#selSell', 'tag'); dress('#gPlace', 'ok'); dress('#gRot', 'rotate'); dress('#gCancel', 'no');
+  { const _sc = syncCamBtn; syncCamBtn = function () { _sc(); dress('#btnCam', 'camera'); }; }
+  Object.assign(TABICON, { sala: ico('sofa'), cocina: ico('pot'), bano: ico('tub'), dormir: ico('bed'), estudio: ico('desk'), jardin: ico('tree'), muros: ico('wall3') });
+
+  /* Teléfono */
+  { const _rp = renderPhone; renderPhone = function () { _rp(); const p = $('#phone'); if (!p || p.hidden) return;
+    [['invite', 'people'], ['food', 'pizza'], ['dayoff', 'sun']].forEach(([a, n]) => dress(p.querySelector('[data-a="' + a + '"]'), n)); }; }
+
+  /* Hora del día: sol, luna o lluvia junto al reloj */
+  $('.clock').insertAdjacentHTML('afterbegin', '<span id="tod"></span>');
+  let todK = '';
+  setInterval(() => { const k = WX.rain > .3 ? 'rain' : isNight ? 'moon' : 'sun'; if (k !== todK) { todK = k; $('#tod').innerHTML = ico(k); } }, 700);
+}
 /* Puerta de pruebas (también útil para depurar): window.CDC */
 window.CDC = { G, S, JOB, BILLS, VIS, REL, PROG, DELIVERY, payBills, goToWork, returnFromWork, billArrive, renderPhone };
 boot();
