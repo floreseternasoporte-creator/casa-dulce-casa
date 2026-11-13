@@ -481,7 +481,7 @@ function tint(hex, k) {
 
 /* ===== Constantes del mundo (1 unidad = 1 metro = 1 casilla) ===== */
 const N = 40;
-const HOUSE = { x0: 8, z0: 12, x1: 30, z1: 26 };
+const HOUSE = { x0: 6, z0: 12, x1: 34, z1: 26 };
 const FLOOR_Y = 0.1;
 const WALL_H = 2.8;
 const WT = 0.16;
@@ -724,23 +724,25 @@ const LOT = { x0: 3, z0: 5, x1: 37, z1: 32 };
   for (let i = 0; i < 60; i++) { m4.makeTranslation(-90 + i * 4, 0.04, 39); dash.setMatrixAt(i, m4); }
   world.add(dash);
   const path = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.08, 6.4), new THREE.MeshStandardMaterial({ map: paverTex(1.2, 3.4), roughness: 1 }));
-  path.position.set(22.5, 0.04, 29.2); path.receiveShadow = true; world.add(path);
+  path.position.set(19.5, 0.04, 29.2); path.receiveShadow = true; world.add(path);
   const porch = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.2, 2.2), M(0xb9b3a8, .9));
-  porch.position.set(22.5, 0.1, 27.1); porch.castShadow = porch.receiveShadow = true; world.add(porch);
+  porch.position.set(19.5, 0.1, 27.1); porch.castShadow = porch.receiveShadow = true; world.add(porch);
   const step = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.1, 0.6), M(0xa8a298, .9));
-  step.position.set(22.5, 0.05, 28.4); step.receiveShadow = true; world.add(step);
+  step.position.set(19.5, 0.05, 28.4); step.receiveShadow = true; world.add(step);
 })();
 
 /* ===== Casa: suelos ===== */
 const ROOMS = [
-  { name: 'Dormitorio', x0: 8, z0: 12, x1: 16, z1: 20, tex: () => carpetTex('#b8a9c9', 4, 4) },
-  { name: 'Baño', x0: 8, z0: 20, x1: 16, z1: 26, tex: () => tileTex('#e8f1f4', '#d3e3ea', '#9fb5bd', 4, 8, 6) },
-  { name: 'Cocina', x0: 16, z0: 12, x1: 30, z1: 20, tex: () => tileTex('#f2ead9', '#d9c9a8', '#a89a7e', 4, 14, 8) },
-  { name: 'Sala', x0: 16, z0: 20, x1: 30, z1: 26, tex: () => woodTex('#b98954', '#6a4526', 7, 3, 4) },
+  { name: 'Dormitorio', x0: 6, z0: 6, x1: 14, z1: 12, tex: () => carpetTex('#b8a9c9', 4, 4) },
+  { name: 'Cocina', x0: 6, z0: 12, x1: 14, z1: 26, tex: () => tileTex('#f2ead9', '#d9c9a8', '#a89a7e', 4, 8, 14) },
+  { name: 'Sala', x0: 14, z0: 12, x1: 25, z1: 26, tex: () => woodTex('#b98954', '#6a4526', 7, 3, 4) },
+  { name: 'Baño', x0: 25, z0: 12, x1: 34, z1: 26, tex: () => tileTex('#e6f2fa', '#7fb0d8', '#5a8ab0', 4, 9, 14) },
 ];
 (function floors() {
-  const found = new THREE.Mesh(new THREE.BoxGeometry(22.5, 0.08, 14.5), M(0x9d9a92, 1));
-  found.position.set(19, 0.04, 19); found.receiveShadow = true; world.add(found);
+  const found = new THREE.Mesh(new THREE.BoxGeometry(28.5, 0.08, 14.5), M(0x9d9a92, 1));
+  found.position.set(20, 0.04, 19); found.receiveShadow = true; world.add(found);
+  const found2 = new THREE.Mesh(new THREE.BoxGeometry(8.5, 0.08, 6.5), M(0x9d9a92, 1));
+  found2.position.set(10, 0.04, 9); found2.receiveShadow = true; world.add(found2);
   for (const r of ROOMS) {
     const w = r.x1 - r.x0, d = r.z1 - r.z0;
     const f = new THREE.Mesh(new THREE.BoxGeometry(w, 0.06, d), new THREE.MeshStandardMaterial({ map: r.tex(), roughness: .85 }));
@@ -749,22 +751,32 @@ const ROOMS = [
   }
 })();
 function roomAt(x, z) { return ROOMS.find(r => x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1) || null; }
-const inHouse = (x, z) => x >= HOUSE.x0 && x < HOUSE.x1 && z >= HOUSE.z0 && z < HOUSE.z1;
+const inHouse = (x, z) => (x >= HOUSE.x0 && x < HOUSE.x1 && z >= HOUSE.z0 && z < HOUSE.z1) || (x >= 6 && x < 14 && z >= 6 && z < 12);
 
 /* ===== Casa: muros ===== */
 const WALLS = [];
 const winPanes = [];
 const COL = { siding: 0xe6dccb, trim: 0xfaf7f0, bed: 0xcdbfe0, bath: 0xbfe0e6, kit: 0xf3dfa8, liv: 0xbcd7c0, door: 0x7a4f35 };
 const wallDefs = [
-  // exterior: pos = lado +x/+z, neg = lado -x/-z
-  { x0: 8, z0: 12, x1: 30, z1: 12, pos: COL.kit, neg: COL.siding, ext: 'N', op: [{ a: 11, b: 13.4, t: 'win' }, { a: 20.8, b: 24.2, t: 'win' }, { a: 26, b: 28.4, t: 'win' }] },
-  { x0: 8, z0: 26, x1: 30, z1: 26, pos: COL.siding, neg: COL.liv, ext: 'S', op: [{ a: 11, b: 12.6, t: 'win', sill: 1.5, h: .7 }, { a: 17, b: 20.6, t: 'win', sill: .5, h: 1.5 }, { a: 22, b: 23, t: 'door' }, { a: 25.2, b: 28.8, t: 'win', sill: .5, h: 1.5 }] },
-  { x0: 8, z0: 12, x1: 8, z1: 26, pos: COL.bed, neg: COL.siding, ext: 'W', op: [{ a: 14, b: 17.2, t: 'win' }, { a: 22, b: 24, t: 'win', sill: 1.1, h: 1 }] },
-  { x0: 30, z0: 12, x1: 30, z1: 26, pos: COL.siding, neg: COL.kit, ext: 'E', op: [{ a: 14, b: 17.4, t: 'win' }, { a: 21.6, b: 24.6, t: 'win', sill: .6, h: 1.4 }] },
-  // interior
-  { x0: 16, z0: 12, x1: 16, z1: 26, pos: COL.kit, neg: COL.bed, op: [{ a: 16, b: 17, t: 'door', hinge: 0 }, { a: 23, b: 24, t: 'door', hinge: 1 }], splitC: [[20, COL.liv, COL.bath]] },
-  { x0: 8, z0: 20, x1: 16, z1: 20, pos: COL.bath, neg: COL.bed, op: [{ a: 11, b: 12, t: 'door', hinge: 0 }] },
-  { x0: 16, z0: 20, x1: 30, z1: 20, pos: COL.liv, neg: COL.kit, op: [{ a: 19, b: 27, t: 'open' }] },
+  // exterior norte (z=12): cocina | sala | baño
+  { x0: 6, z0: 12, x1: 14, z1: 12, pos: COL.kit, neg: COL.bed, op: [{ a: 12, b: 13, t: 'door', hinge: 0 }] },
+  { x0: 14, z0: 12, x1: 25, z1: 12, pos: COL.liv, neg: COL.siding, ext: 'N', op: [{ a: 16, b: 18, t: 'win' }, { a: 21, b: 23, t: 'win' }] },
+  { x0: 25, z0: 12, x1: 34, z1: 12, pos: COL.bath, neg: COL.siding, ext: 'N', op: [] },
+  // exterior sur (z=26): cocina | sala (puerta principal) | baño
+  { x0: 6, z0: 26, x1: 14, z1: 26, pos: COL.siding, neg: COL.kit, ext: 'S', op: [{ a: 8, b: 10, t: 'win' }, { a: 12, b: 13, t: 'win' }] },
+  { x0: 14, z0: 26, x1: 25, z1: 26, pos: COL.siding, neg: COL.liv, ext: 'S', op: [{ a: 15, b: 17, t: 'win' }, { a: 19, b: 20, t: 'door', hinge: 0 }, { a: 22, b: 24, t: 'win' }] },
+  { x0: 25, z0: 26, x1: 34, z1: 26, pos: COL.siding, neg: COL.bath, ext: 'S', op: [{ a: 27, b: 29, t: 'win' }, { a: 31, b: 33, t: 'win' }] },
+  // exterior oeste (x=6): dormitorio | cocina
+  { x0: 6, z0: 6, x1: 6, z1: 12, pos: COL.bed, neg: COL.siding, ext: 'W', op: [{ a: 6, b: 8, t: 'win' }] },
+  { x0: 6, z0: 12, x1: 6, z1: 26, pos: COL.kit, neg: COL.siding, ext: 'W', op: [{ a: 14, b: 16, t: 'win' }, { a: 21, b: 23, t: 'win' }] },
+  // exterior este (x=34): baño
+  { x0: 34, z0: 12, x1: 34, z1: 26, pos: COL.siding, neg: COL.bath, ext: 'E', op: [{ a: 15, b: 17, t: 'win' }, { a: 21, b: 23, t: 'win' }] },
+  // ala dormitorio: norte (z=6) y este (x=14)
+  { x0: 6, z0: 6, x1: 14, z1: 6, pos: COL.bed, neg: COL.siding, ext: 'N', op: [{ a: 8, b: 11, t: 'win' }] },
+  { x0: 14, z0: 6, x1: 14, z1: 12, pos: COL.siding, neg: COL.bed, ext: 'E', op: [{ a: 8, b: 10, t: 'win' }] },
+  // interior: cocina | sala | baño
+  { x0: 14, z0: 12, x1: 14, z1: 26, pos: COL.liv, neg: COL.kit, op: [{ a: 16, b: 17, t: 'door', hinge: 0 }, { a: 22, b: 23, t: 'door', hinge: 1 }] },
+  { x0: 25, z0: 12, x1: 25, z1: 26, pos: COL.bath, neg: COL.liv, op: [{ a: 16, b: 17, t: 'door', hinge: 0 }] },
 ];
 const winMat = new THREE.MeshPhysicalMaterial({ color: 0xaad4ee, roughness: .05, metalness: 0, transparent: true, opacity: .28, side: THREE.DoubleSide, emissive: 0xffd88a, emissiveIntensity: 0 });
 const frameMat = M(0xfaf7f0, .6);
@@ -891,7 +903,7 @@ function buildWalls() {
     WALLS.push({ base, wd, horiz, cx, cz, nrm, h: 1 });
   }
   // esquinas exteriores
-  for (const [x, z] of [[8, 12], [30, 12], [8, 26], [30, 26]]) {
+  for (const [x, z] of [[6, 6], [14, 6], [34, 12], [34, 26], [6, 26], [14, 12]]) {
     const c = new THREE.Mesh(new THREE.BoxGeometry(.28, WALL_H, .28), M(COL.trim, .7));
     c.position.set(x, FLOOR_Y + WALL_H / 2, z); c.castShadow = c.receiveShadow = true;
     const g = new THREE.Group(); g.position.set(x, FLOOR_Y, z); c.position.set(0, WALL_H / 2, 0); g.add(c); world.add(g);
@@ -948,9 +960,14 @@ const roofGroup = new THREE.Group();
     m.castShadow = true; roofGroup.add(m);
   }
   const chim = new THREE.Mesh(new THREE.BoxGeometry(1, 3.2, 1), M(0x8a5a48, .95));
-  chim.position.set(26.5, FLOOR_Y + WALL_H + 3, 15); chim.castShadow = true; roofGroup.add(chim);
+  chim.position.set(16, FLOOR_Y + WALL_H + 3, 13); chim.castShadow = true; roofGroup.add(chim);
   const cap = new THREE.Mesh(new THREE.BoxGeometry(1.3, .18, 1.3), M(0x6d6862, .9));
-  cap.position.set(26.5, FLOOR_Y + WALL_H + 4.7, 15); roofGroup.add(cap);
+  cap.position.set(16, FLOOR_Y + WALL_H + 4.7, 13); roofGroup.add(cap);
+  // ala dormitorio: tejado pequeño a dos aguas
+  { const wx0 = 6 - .9, wx1 = 14 + .9, wz0 = 6 - .9, wz1 = 12 + .9, wrise = 2.2, wmidZ = (wz0 + wz1) / 2, whw = (wz1 - wz0) / 2, wlen = Math.hypot(whw, wrise), wang = Math.atan2(wrise, whw);
+    for (const s of [-1, 1]) { const slab = new THREE.Mesh(new THREE.BoxGeometry(wx1 - wx0, thick, wlen + .08), mat); slab.position.set((wx0 + wx1) / 2, FLOOR_Y + WALL_H + wrise / 2 + thick / 2, wmidZ + s * whw / 2); slab.rotation.x = s * wang; slab.castShadow = slab.receiveShadow = true; roofGroup.add(slab); }
+    const wridge = new THREE.Mesh(new THREE.BoxGeometry(wx1 - wx0 + .1, .16, .34), M(0x8f3f2c, .8)); wridge.position.set((wx0 + wx1) / 2, FLOOR_Y + WALL_H + wrise + .18, wmidZ); wridge.castShadow = true; roofGroup.add(wridge);
+    for (const x of [6, 14]) { const sh = new THREE.Shape(); sh.moveTo(-3, 0); sh.lineTo(3, 0); sh.lineTo(0, wrise - .05); sh.closePath(); const g = new THREE.ExtrudeGeometry(sh, { depth: .16, bevelEnabled: false }); const m = new THREE.Mesh(g, M(COL.siding, .9)); m.rotation.y = Math.PI / 2; m.position.set(x - .08, FLOOR_Y + WALL_H, wmidZ); m.castShadow = true; roofGroup.add(m); } }
   roofGroup.visible = false;
   world.add(roofGroup);
 })();
@@ -1015,10 +1032,10 @@ function makeBush(x, z, s = 1, col = 0x4a9a45, flower) {
   const add = (x, z, rot) => pickets.push([x, z, rot]);
   for (let x = LOT.x0; x <= LOT.x1; x += .55) add(x, LOT.z0, 0);
   for (let z = LOT.z0; z <= LOT.z1; z += .55) { add(LOT.x0, z, Math.PI / 2); add(LOT.x1, z, Math.PI / 2); }
-  for (let x = LOT.x0; x <= LOT.x1; x += .55) if (x < 19.8 || x > 25.2) add(x, LOT.z1, 0);
+  for (let x = LOT.x0; x <= LOT.x1; x += .55) if (x < 16.8 || x > 22.2) add(x, LOT.z1, 0);
   const geo = new THREE.BoxGeometry(.3, 1.05, .06);
   geo.translate(0, .52, 0);
-  const im = new THREE.InstancedMesh(geo, M(0xf4efe4, .8), pickets.length);
+  const im = new THREE.InstancedMesh(geo, M(0x9a7a52, .8), pickets.length);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), sc = new THREE.Vector3(1, 1, 1);
   pickets.forEach(([x, z, rot], i) => {
     e.set(0, rot, 0); q.setFromEuler(e);
@@ -1026,12 +1043,12 @@ function makeBush(x, z, s = 1, col = 0x4a9a45, flower) {
     m4.compose(new THREE.Vector3(x, 0, z), q, sc); im.setMatrixAt(i, m4);
   });
   im.castShadow = true; outside.add(im);
-  const rail = (x, z, l, rot) => { const m = new THREE.Mesh(new THREE.BoxGeometry(l, .07, .08), M(0xe8e2d4, .8)); m.position.set(x, .75, z); m.rotation.y = rot; outside.add(m); const m2 = m.clone(); m2.position.y = .3; outside.add(m2); };
+  const rail = (x, z, l, rot) => { const m = new THREE.Mesh(new THREE.BoxGeometry(l, .07, .08), M(0x8a6a48, .8)); m.position.set(x, .75, z); m.rotation.y = rot; outside.add(m); const m2 = m.clone(); m2.position.y = .3; outside.add(m2); };
   rail((LOT.x0 + LOT.x1) / 2, LOT.z0, LOT.x1 - LOT.x0, 0);
   rail(LOT.x0, (LOT.z0 + LOT.z1) / 2, LOT.z1 - LOT.z0, 0 + Math.PI / 2);
   rail(LOT.x1, (LOT.z0 + LOT.z1) / 2, LOT.z1 - LOT.z0, Math.PI / 2);
-  rail((LOT.x0 + 19.8) / 2, LOT.z1, 19.8 - LOT.x0, 0);
-  rail((25.2 + LOT.x1) / 2, LOT.z1, LOT.x1 - 25.2, 0);
+  rail((LOT.x0 + 16.8) / 2, LOT.z1, 16.8 - LOT.x0, 0);
+  rail((22.2 + LOT.x1) / 2, LOT.z1, LOT.x1 - 22.2, 0);
 })();
 let mailboxFlag = null, mailboxGroup = null;
 // buzon
@@ -1041,7 +1058,7 @@ let mailboxFlag = null, mailboxGroup = null;
   const box = new THREE.Mesh(new THREE.CylinderGeometry(.2, .2, .55, 10, 1, false, 0, Math.PI), M(0x2c5fa6, .5, .3));
   box.rotation.z = Math.PI / 2; box.rotation.y = 0; box.position.set(0, 1.3, 0); g.add(box);
   const flag = new THREE.Mesh(new THREE.BoxGeometry(.04, .22, .02), M(0xe04a3a, .6)); flag.position.set(.2, 1.4, .0); g.add(flag); mailboxFlag = flag;
-  g.position.set(26.4, 0, 31.4); g.castShadow = true; outside.add(g); mailboxGroup = g;
+  g.position.set(23.4, 0, 31.4); g.castShadow = true; outside.add(g); mailboxGroup = g;
 })();
 // farolas
 (function lamps() {
@@ -1656,7 +1673,7 @@ const objects = [];
 const occFloor = new Uint8Array(N * N);
 const objRoot = new THREE.Group();
 scene.add(objRoot);
-for (let x = 21; x <= 23; x++) for (let z = 27; z <= 31; z++) reserved[ci(x, z)] = 1;
+for (let x = 18; x <= 20; x++) for (let z = 27; z <= 31; z++) reserved[ci(x, z)] = 1;
 
 const fpSize = (d, rot) => (rot % 2 ? { fw: d.d, fd: d.w } : { fw: d.w, fd: d.d });
 function cellsOf(cx, cz, fw, fd) { const a = []; for (let x = cx; x < cx + fw; x++) for (let z = cz; z < cz + fd; z++) a.push([x, z]); return a; }
@@ -1780,19 +1797,24 @@ function nearestFree(x, z) {
 /* ===== Distribucion inicial ===== */
 function furnishStart() {
   const P = placeObj;
-  // dormitorio
-  P('bed2', 10, 12, 0); P('nightstand', 9, 12, 0); P('nightstand', 12, 12, 0); P('wardrobe', 8, 17, 1);
-  P('desk', 13, 12, 0); P('plant', 14, 18, 0); P('rug', 10, 14, 0);
-  // baño
-  P('toilet', 8, 21, 1); P('shower', 8, 23, 1); P('sink', 10, 25, 2); P('tub', 13, 25, 2); P('mirror', 12, 20, 0);
-  // cocina
-  P('fridge', 16, 12, 0); P('stove', 17, 12, 0); P('counter', 18, 12, 0); P('kitsink', 20, 12, 0); P('counter', 21, 12, 0);
-  P('table', 23, 16, 0); P('chair', 23, 15, 0); P('chair', 24, 15, 0); P('chair', 23, 17, 2); P('chair', 24, 17, 2);
-  // sala
-  P('rug', 23, 20, 1); P('sofa', 22, 21, 1); P('coffeetable', 24, 21, 1); P('tv', 29, 20, 3); P('armchair', 26, 24, 1);
-  P('bookshelf', 16, 20, 1); P('floorlamp', 16, 25, 0); P('plant', 28, 25, 0); P('piano', 20, 24, 2);
-  // jardin
-  P('fireplace', 26, 12, 0); P('aquarium', 28, 12, 0); P('easel', 12, 17, 2); P('fountain', 33, 27, 0); P('telescope', 6, 20, 0); P('landline', 18, 22, 0); P('bench', 31, 15, 3); P('bbq', 32, 20, 3); P('plant', 6, 24, 0);
+  // dormitorio (ala norte, detrás de la cocina, como la imagen)
+  P('bed2', 9, 6, 0); P('nightstand', 8, 6, 0); P('nightstand', 11, 6, 0); P('wardrobe', 6, 9, 1);
+  P('desk', 13, 9, 3); P('plant', 13, 11, 0); P('rug', 9, 9, 0);
+  // cocina (izquierda: barra en la pared norte + mesa con 4 sillas)
+  P('fridge', 6, 12, 0); P('stove', 7, 12, 0); P('counter', 8, 12, 0); P('kitsink', 10, 12, 0); P('microwave', 11, 12, 0);
+  P('counter', 6, 14, 1);
+  P('table', 9, 22, 0); P('chair', 9, 21, 0); P('chair', 10, 21, 0); P('chair', 9, 23, 2); P('chair', 10, 23, 2);
+  // sala (centro: tele en la pared norte, sofá enfrente, como la imagen)
+  P('fireplace', 14, 12, 0); P('tv', 19, 12, 0); P('easel', 24, 12, 0);
+  P('rug', 19, 15, 0); P('coffeetable', 19, 15, 0); P('sofa', 19, 17, 2); P('armchair', 23, 16, 2);
+  P('bookshelf', 14, 20, 1); P('piano', 24, 21, 3); P('floorlamp', 14, 25, 0); P('plant', 24, 25, 0);
+  P('aquarium', 21, 25, 2); P('landline', 14, 23, 0);
+  // baño (derecha: ducha y lavabo arriba, bañera y retrete abajo)
+  P('shower', 26, 12, 0); P('sink', 28, 12, 0); P('mirror', 30, 12, 0); P('hamper', 33, 12, 0);
+  P('toilet', 25, 24, 1); P('tub', 33, 24, 3);
+  // jardín (como la imagen: flores al frente, fuente, parrilla y banco)
+  P('planter', 8, 27, 0); P('planter', 10, 27, 0); P('planter', 12, 27, 0); P('planter', 27, 27, 0); P('planter', 29, 27, 0); P('planter', 31, 27, 0);
+  P('veggies', 8, 30, 0); P('fountain', 33, 27, 0); P('telescope', 4, 20, 0); P('bench', 36, 15, 3); P('bbq', 32, 28, 0);
 }
 
 /* ===== El Sim: modelo ===== */
@@ -1804,7 +1826,7 @@ const SHIRTS = ['#e8564a', '#3a8fe0', '#43b86a', '#f2b134', '#9b6be0', '#f2f2f2'
 const PANTS = ['#2b3a55', '#1c1c22', '#7a5a3a', '#6a7a8a', '#8a2f3f', '#3a6a4a'];
 const LOOK = { skin: 1, hair: 0, style: 'long', shirt: 0, pants: 0, gender: 'f' };
 const S = {
-  name: 'Valentina', pos: { x: 22.5, z: 24.4 }, y: FLOOR_Y, face: Math.PI, state: 'idle', path: [], pi: 0, queue: [],
+  name: 'Valentina', pos: { x: 19.5, z: 24.4 }, y: FLOOR_Y, face: Math.PI, state: 'idle', path: [], pi: 0, queue: [],
   needs: { hunger: 78, energy: 82, bladder: 80, hygiene: 85, fun: 70, social: 72 }, mood: 75, autoT: 2, bubble: null, t: 0,
   J: null, T: null, rem: 0, tot: 0, tween: null, exitPos: null, atY: 0, label: '', prop: null, swim: 0, jumpT: 0,
 };
@@ -2054,7 +2076,7 @@ function sfx(n) { if (!G.sound) return; try { audioInit(); if (AC.state === 'sus
 const PENTA = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3];
 
 /* ===== Utilidades de Sim ===== */
-const groundY = (x, z) => inHouse(Math.floor(x), Math.floor(z)) ? FLOOR_Y : (x > 20.6 && x < 24.4 && z > 26 && z < 28.2 ? .2 : 0);
+const groundY = (x, z) => inHouse(Math.floor(x), Math.floor(z)) ? FLOOR_Y : (x > 17.6 && x < 21.4 && z > 26 && z < 28.2 ? .2 : 0);
 function simCell() { return [Math.floor(S.pos.x), Math.floor(S.pos.z)]; }
 function say(text, secs = 2.6) { S.bubble = { text, t: secs }; }
 function updMood() {
@@ -2403,7 +2425,7 @@ function updateScreens(t) {
 /* ===== Camara orbital ===== */
 const CAM = { tx: 19, ty: .4, tz: 19.5, yaw: .5, pitch: .92, dist: 38, goal: { tx: 19, ty: .4, tz: 19.5, yaw: .5, pitch: .92, dist: 38 }, follow: false };
 function fitDist() { return camera.aspect < .9 ? 62 : camera.aspect < 1.4 ? 46 : 38; }
-function camHome() { Object.assign(CAM.goal, { tx: 19, ty: .4, tz: 19.5, pitch: .92, dist: fitDist() }); }
+function camHome() { Object.assign(CAM.goal, { tx: 20, ty: .4, tz: 19, pitch: .92, dist: fitDist() }); }
 function updateCamera(dt) {
   const g = CAM.goal;
   if (CAM.follow && G.started) { g.tx = lerp(g.tx, S.pos.x, clamp(dt * 3, 0, 1)); g.tz = lerp(g.tz, S.pos.z, clamp(dt * 3, 0, 1)); }
@@ -2840,7 +2862,7 @@ function resetWorld() {
   clearGhost(); selectObj(null);
   [...objects].forEach(removeObj); furnishStart();
   Object.assign(G, { min: 8 * 60, day: 1, money: 7500 }); Object.assign(S.needs, { hunger: 78, energy: 82, bladder: 80, hygiene: 85, fun: 70, social: 72 });
-  S.queue.length = 0; S.state = 'idle'; S.pos.x = 22.5; S.pos.z = 24.4; S.act = null; S.target = null;
+  S.queue.length = 0; S.state = 'idle'; S.pos.x = 19.5; S.pos.z = 24.4; S.act = null; S.target = null;
   $('#help').hidden = true; setMode('live'); showWelcome();
 }
 
@@ -3008,7 +3030,7 @@ const VIS = (() => {
   const limb = (x, y, len, c) => { const p = new THREE.Group(); p.position.set(x, y, 0); const m = new THREE.Mesh(new THREE.CylinderGeometry(.055, .05, len, 8), mt(c)); m.position.y = -len / 2; shadowize(m); p.add(m); g.add(p); return p; };
   const aL = limb(.22, 1.35, .5, shirt), aR = limb(-.22, 1.35, .5, shirt), lL = limb(.09, .85, .85, 0x3a4a6a), lR = limb(-.09, .85, .85, 0x3a4a6a);
   g.visible = false; world.add(g);
-  const V = { st: 'idle', x: 22.5, z: 36, wp: [], i: 0, t: 0, next: 11 * 60, ph: 0, ft: 0 };
+  const V = { st: 'idle', x: 19.5, z: 36, wp: [], i: 0, t: 0, next: 11 * 60, ph: 0, ft: 0 };
   const abs = () => (G.day - 1) * 1440 + G.min;
   const go = (pts, st) => { V.wp = pts; V.i = 0; V.st = st; };
   dyn.push({ update(dt, t) {
@@ -3016,7 +3038,7 @@ const VIS = (() => {
     const f = SPEED_F[G.speed] * dt, h = (G.min / 60) % 24;
     if (V.st === 'idle') {
       if (abs() >= V.next && h >= 10 && h < 20 && !PARTY.on && !JOB.atWork && !OUT.on && !COM.on && !FAINT.on && !NV.on) {
-        V.x = 22.5; V.z = 36; g.visible = true; go([[22.5, 28.9], [22.5, 24.0]], 'in');
+        V.x = 19.5; V.z = 36; g.visible = true; go([[19.5, 28.9], [19.5, 24.0]], 'in');
         toast('¡Alguien llama a la puerta!'); sfx('doorbell');
       }
       return;
@@ -3043,13 +3065,13 @@ const VIS = (() => {
       if (S.state === 'idle') S.face = angLerp(S.face, Math.atan2(V.x - S.pos.x, V.z - S.pos.z), .08);
       g.rotation.y = angLerp(g.rotation.y, Math.atan2(S.pos.x - V.x, S.pos.z - V.z), .08);
       V.ft -= dt; if (V.ft <= 0) { V.ft = 2.5; emit('heart', V.x, 2, V.z, 0, .4, 0, 1.5, .26); S.needs.fun = Math.min(100, S.needs.fun + 2.5); S.needs.social = Math.min(100, S.needs.social + 4); }
-      if (V.t <= 0) { toast('El vecino se despidió'); go([[22.5, 28.9], [22.5, 36]], 'out'); }
+      if (V.t <= 0) { toast('El vecino se despidió'); go([[19.5, 28.9], [19.5, 36]], 'out'); }
     }
     g.position.set(V.x, groundY(V.x, V.z), V.z);
   } });
   V.invite = () => {
     if (V.st !== 'idle') return false;
-    V.x = 22.5; V.z = 36; g.visible = true; go([[22.5, 28.9], [22.5, 24.0]], 'in');
+    V.x = 19.5; V.z = 36; g.visible = true; go([[19.5, 28.9], [19.5, 24.0]], 'in');
     toast('¡' + REL.name + ' viene de visita!');
     return true;
   };
@@ -3073,7 +3095,7 @@ function enterCAS() {
   const pt = camera.aspect < .9; Object.assign(CAM.goal, { tx: 200, ty: pt ? .15 : 1.0, tz: 200, yaw: .3, pitch: .16, dist: pt ? 7 : 4.4 }); Object.assign(CAM, CAM.goal);
 }
 function leaveCAS() {
-  stage.visible = false; S.pos.x = 22.5; S.pos.z = 24.4; S.face = Math.PI; S.y = FLOOR_Y;
+  stage.visible = false; S.pos.x = 19.5; S.pos.z = 24.4; S.face = Math.PI; S.y = FLOOR_Y;
   CAM.goal.yaw = .5; camHome(); Object.assign(CAM, CAM.goal);
 }
 $('#randBtn').addEventListener('click', () => {
@@ -3480,7 +3502,7 @@ function returnFromWork() {
   const b = jobLvl(); PROG.jobs++;
   const pay = 420 + PAY[jobLvl()];
   G.money += pay; JOB.atWork = false; JOB.needsSnap = null; jobSave();
-  S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y;
+  S.pos.x = 19.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y;
   sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
   S.needs.energy = clamp(S.needs.energy - 18, 0, 100);
   S.needs.hunger = clamp(S.needs.hunger - 15, 0, 100);
@@ -3972,8 +3994,8 @@ function makeTrafficCar(col, lane, dir, x) { const g = makeCar(col);
   g.position.set(x, 0, lane); g.rotation.y = dir > 0 ? 0 : Math.PI; g.traverse(m => { m.castShadow = false; }); TOWN.add(g); CARS.push({ g, dir, v: 5 + Math.random() * 3 }); }
 [[0xe8564a, 36.4, 1, -60], [0x3a8fe0, 36.4, 1, 30], [0xf2b134, 41.6, -1, 90], [0x59b86a, 41.6, -1, -20], [0x8a5ac8, 36.4, 1, 110]].forEach(a => makeTrafficCar(...a));
 { let last = performance.now(); const loop = function (t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, .1); last = t; const sp = [0, 1, 2.2, 4][G.speed] || 0;
-    const onRoad = COM.on && S.pos.z > 33 && S.pos.z < 45 && Math.abs(S.pos.x - 22.5) < 3;
-    for (const c of CARS) { const ahead = (22.5 - c.g.position.x) * c.dir; if (onRoad && ahead > 1.5 && ahead < 9) continue; c.g.position.x += c.dir * c.v * dt * sp; for (const w of c.g.userData.wheels || []) w.rotation.z -= c.dir * c.v * dt * sp / .38; if (c.g.position.x > 250) c.g.position.x = -165; if (c.g.position.x < -165) c.g.position.x = 250; } }; requestAnimationFrame(loop); }
+    const onRoad = COM.on && S.pos.z > 33 && S.pos.z < 45 && Math.abs(S.pos.x - 19.5) < 3;
+    for (const c of CARS) { const ahead = (19.5 - c.g.position.x) * c.dir; if (onRoad && ahead > 1.5 && ahead < 9) continue; c.g.position.x += c.dir * c.v * dt * sp; for (const w of c.g.userData.wheels || []) w.rotation.z -= c.dir * c.v * dt * sp / .38; if (c.g.position.x > 250) c.g.position.x = -165; if (c.g.position.x < -165) c.g.position.x = 250; } }; requestAnimationFrame(loop); }
 setInterval(() => { const h = (G.min / 60) % 24, night = h >= 18 || h < 6; winMat.emissiveIntensity = night ? .9 : 0; lampMat.emissiveIntensity = night ? 1.3 : 0; }, 2000);
 
 /* ---- Salidas: el Sim va a un lugar de la ciudad y vuelve con los efectos ---- */
@@ -3991,7 +4013,7 @@ function outEnd() {
   const o = PLACES[OUT.k].out; OUT.on = false; const k9 = OUT.k; if (CAR.owned) carRoute(PLACES[OUT.k].cx, true);
   for (const k in o.fx) S.needs[k] = clamp(S.needs[k] + o.fx[k], 0, 100); S.needs.social = clamp(S.needs.social + (o.soc || 25), 0, 100); if (OUT.k === 'tienda') foodAdd(8);
   if (o.xp) { PROG.xp[o.xp[0]] = (PROG.xp[o.xp[0]] || 0) + o.xp[1] * (HAS('artistico') ? 2 : 1); try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ } }
-  S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
+  S.pos.x = 19.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
   camHome(); say('¡Qué buen rato!'); toast('De vuelta en casa · ' + o.t + ' ✔'); note(659.3, .06, .5); saveSoon(); if (typeof window.OUTX9 === 'function') window.OUTX9(k9);
 }
 { const _gw = goToWork; goToWork = function () { if (FAINT.on) { FAINT.on = false; sim.root.rotation.z = 0; } OUT.on = false; _gw(); }; }
@@ -4020,10 +4042,10 @@ function renderCity() {
 }
 /* ===== Trayecto: el Sim camina de casa al trabajo (cruzando por el paso de peatones) y regresa ===== */
 /* COM vive ARRIBA, antes del bloque de la Ciudad (ver nota ahí). */
-for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.6, .02, .55), M(0xf4f1e8, 1)); m.position.set(22.5, .06, 34.5 + i * 1.1); scene.add(m); }
+for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.6, .02, .55), M(0xf4f1e8, 1)); m.position.set(19.5, .06, 34.5 + i * 1.1); scene.add(m); }
 const workPlace = () => Object.values(PLACES).find(q => q.track === TR.id);
 function comStart(mode, p) {
-  const c = Math.floor(p.cx), to = [[22, 27], [22, 29], [22, 33], [22, 45], [c, 45], [c, 47]];
+  const c = Math.floor(p.cx), to = [[19, 27], [19, 29], [19, 33], [19, 45], [c, 45], [c, 47]];
   COM.path = mode === 'work' ? to : to.slice().reverse(); COM.pi = 1; COM.mode = mode; COM.on = true;
   if (mode === 'home') { S.pos.x = c + .5; S.pos.z = 47.5; S.face = 0; S.y = 0; }
   sim.root.visible = true; S.state = 'away'; S.label = mode === 'work' ? 'Yendo al trabajo' : 'Volviendo a casa'; S.queue.length = 0; CAM.follow = true;
@@ -4031,7 +4053,7 @@ function comStart(mode, p) {
 function comEnd() {
   COM.on = false; CAM.follow = false;
   if (COM.mode === 'work') { sim.root.visible = false; S.state = 'away'; S.label = 'En el trabajo'; }
-  else { S.state = 'idle'; S.label = ''; S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; }
+  else { S.state = 'idle'; S.label = ''; S.pos.x = 19.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; }
   camHome();
 }
 { const _ar = arrive; arrive = function () { if (COM.on) return comEnd(); _ar(); }; }
@@ -4140,7 +4162,7 @@ function famAdd() {
   stopSimNow(); FAM.list[FAM.cur] = famSnap();
   const R = n => Math.floor(Math.random() * n), g = R(2) ? 'm' : 'f', names = FNAMES[g].filter(n => !FAM.list.some(m => m.name === n));
   const look = { skin: R(SKINS.length), hair: R(HAIRS.length), shirt: R(SHIRTS.length), pants: R(PANTS.length), gender: g, style: 'long' }; Object.assign(LOOK, look); const st = stylesFor(); look.style = st[R(st.length)][0]; look.acc = 'none'; Object.assign(look, { face: ['oval', 'round', 'square'][R(3)], brow: 'normal', nose: ['small', 'mid', 'big'][R(3)], beard: 'none', marks: 'none', ears: 'none', build: ['slim', 'avg', 'broad'][R(3)], height: 'mid', eye: R(6), lips: R(6) });
-  const tk = Object.keys(TRAITS.defs), m = { name: names[R(names.length)] || 'Sim', look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70, social: 70 }, pos: { x: 22.5, z: 24.4 },
+  const tk = Object.keys(TRAITS.defs), m = { name: names[R(names.length)] || 'Sim', look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70, social: 70 }, pos: { x: 19.5, z: 24.4 },
     prog: { xp: {}, jobs: 0 }, job: Object.assign({}, JOBDEF, { lastShift: G.day }), tr: 'oficina', traits: [tk[R(tk.length)]], w: { slots: [], pts: 0 }, t: jobAbs(), life: { age: 18 + R(10), bd: 1 + R(14), last: 0, bdDay: 0, party: 0 } };
   FAM.list.push(m); FAM.cur = FAM.list.length - 1; famLoad(m); famSave(); camHome();
   toast('¡Nuevo miembro: ' + S.name + '! Rasgo: ' + TRAITS.defs[TRAITS.sel[0]].n); note(659.3, .05, .4); setTimeout(() => note(880, .05, .5), 120); saveSoon();
@@ -4542,7 +4564,7 @@ function famAddSpouse(n) {
   const R = k => Math.floor(Math.random() * k), g = ['Lucas', 'Diego'].includes(n.name) ? 'm' : 'f', keep = LOOK.gender; LOOK.gender = g; const st = stylesFor(); LOOK.gender = keep;
   const tk = Object.keys(TRAITS.defs), look = { skin: nearestIdx(SKINS, n.skin), hair: nearestIdx(HAIRS, n.hair), shirt: nearestIdx(SHIRTS, n.shirt), pants: R(PANTS.length), gender: g, style: st[R(st.length)][0], acc: 'none', face: ['oval', 'round', 'square'][R(3)], brow: 'normal', nose: ['small', 'mid', 'big'][R(3)], beard: 'none', marks: 'none', ears: 'none', build: 'avg', height: 'mid', eye: R(EYES.length), lips: R(LIPS.length) };
   FAM.list[FAM.cur] = famSnap();
-  FAM.list.push({ name: n.name, look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70, social: 80 }, pos: { x: 22.5, z: 24.4 }, prog: { xp: {}, jobs: 0 }, job: Object.assign({}, JOBDEF, { lastShift: G.day }), tr: 'oficina', traits: [tk[R(tk.length)]], w: { slots: [], pts: 0 }, t: jobAbs(), life: { age: 20 + R(12), bd: 1 + R(14), last: 0, bdDay: 0, party: 0 } });
+  FAM.list.push({ name: n.name, look, needs: { hunger: 75, energy: 80, bladder: 80, hygiene: 85, fun: 70, social: 80 }, pos: { x: 19.5, z: 24.4 }, prog: { xp: {}, jobs: 0 }, job: Object.assign({}, JOBDEF, { lastShift: G.day }), tr: 'oficina', traits: [tk[R(tk.length)]], w: { slots: [], pts: 0 }, t: jobAbs(), life: { age: 20 + R(12), bd: 1 + R(14), last: 0, bdDay: 0, party: 0 } });
   famSave(); return true;
 }
 { const _sm7 = simMenu; simMenu = function () {
@@ -5015,7 +5037,7 @@ $('#help ul').insertAdjacentHTML('beforeend', '<li><b>Comida:</b> la nevera y la
    estado, solo el dinero gastado y la amistad ganada). */
 const PARTY = { on: false, ending: false, mode: '', type: '', guests: [], queue: [], nextArrive: 0, endAbs: 0, score: 0, music: false, plan: null };
 const PARTY_TYPES = { party: { n: '🎉 Fiesta', cost: 50 }, cena: { n: '🍽️ Cena', cost: 80 }, cumple: { n: '🎂 Cumpleaños', cost: 80 } };
-const PARTY_SPOTS = [[20.5, 26.5], [24.5, 26.5], [21, 24], [24, 24], [22.5, 22]];
+const PARTY_SPOTS = [[19, 24], [21, 24], [18, 22], [21, 22], [19.5, 20]];
 
 function makeGuestFigure(n) {
   const g = new THREE.Group(), mt = c => M(c, .8);
@@ -5105,7 +5127,7 @@ function startParty() {
   if (!partyGuards()) return;
   G.money -= cost; PARTY.plan = null;
   PARTY.on = true; PARTY.ending = false; PARTY.mode = 'party'; PARTY.type = plan.type;
-  PARTY.guests = guests.map(i => ({ ni: i, fig: getGuestFigure(i), x: 22.5, z: 36, st: 'wait', wp: [], wi: 0, t: 0, act: 'chat', ft: 0, ph: Math.random() * 6, spot: null, came: false }));
+  PARTY.guests = guests.map(i => ({ ni: i, fig: getGuestFigure(i), x: 19.5, z: 36, st: 'wait', wp: [], wi: 0, t: 0, act: 'chat', ft: 0, ph: Math.random() * 6, spot: null, came: false }));
   PARTY.queue = guests.slice();
   PARTY.nextArrive = jobAbs() + 5; PARTY.endAbs = jobAbs() + 180; PARTY.score = 0;
   PARTY.music = objects.some(o => o.id === 'stereo' || o.id === 'turntable');
@@ -5121,7 +5143,7 @@ function startHangout() {
   if (!partyGuards()) return;
   PARTY.plan = null;
   PARTY.on = true; PARTY.ending = false; PARTY.mode = 'hangout'; PARTY.type = 'hangout';
-  PARTY.guests = guests.map(i => ({ ni: i, fig: getGuestFigure(i), x: 22.5, z: 36, st: 'wait', wp: [], wi: 0, t: 0, act: 'chat', ft: 0, ph: Math.random() * 6, spot: null, came: false }));
+  PARTY.guests = guests.map(i => ({ ni: i, fig: getGuestFigure(i), x: 19.5, z: 36, st: 'wait', wp: [], wi: 0, t: 0, act: 'chat', ft: 0, ph: Math.random() * 6, spot: null, came: false }));
   PARTY.queue = guests.slice();
   PARTY.nextArrive = jobAbs() + 5; PARTY.endAbs = jobAbs() + 45; PARTY.score = 0;
   PARTY.music = objects.some(o => o.id === 'stereo' || o.id === 'turntable');
@@ -5134,7 +5156,7 @@ function endParty(reason) {
   PARTY.ending = true;
   for (const gu of PARTY.guests) {
     if (gu.st === 'wait') { gu.st = 'gone'; }
-    else if (gu.st === 'arrive' || gu.st === 'mingle') { gu.st = 'leave'; gu.wp = [[22.5, 28.9], [22.5, 36]]; gu.wi = 0; gu.fig.g.visible = true; }
+    else if (gu.st === 'arrive' || gu.st === 'mingle') { gu.st = 'leave'; gu.wp = [[19.5, 28.9], [19.5, 36]]; gu.wi = 0; gu.fig.g.visible = true; }
   }
   if (reason === 'work') toast('Te fuiste a trabajar y la fiesta se acabó', true);
   else if (reason === 'faint') toast('Te desmayaste y la fiesta se acabó', true);
@@ -5158,8 +5180,8 @@ dyn.push({ update(dt, t) {
   if (!PARTY.ending && PARTY.queue.length && jobAbs() >= PARTY.nextArrive) {
     const ni = PARTY.queue.shift();
     const gu = PARTY.guests.find(g => g.ni === ni);
-    gu.spot = PARTY_SPOTS.find(s => !PARTY.guests.some(g => g.spot === s)) || [22.5, 24];
-    gu.st = 'arrive'; gu.wp = [[22.5, 28.9], gu.spot]; gu.wi = 0; gu.came = true;
+    gu.spot = PARTY_SPOTS.find(s => !PARTY.guests.some(g => g.spot === s)) || [19.5, 24];
+    gu.st = 'arrive'; gu.wp = [[19.5, 28.9], gu.spot]; gu.wi = 0; gu.came = true;
     gu.fig.g.visible = true;
     PARTY.nextArrive = jobAbs() + 8;
     toast('¡Llegó ' + NG.list[ni].name + '!'); note(659.3, .06, .5);
@@ -5335,7 +5357,7 @@ function startNeighborVisit(i) {
   CAM.follow = true; syncCamBtn();
   S.queue = S.queue.filter(q => !q.auto);
   S.item = { kind: 'walk', cell: [n.hx, 29], label: 'Ir a casa de ' + n.name }; S.queue.unshift(S.item);
-  S.path = [[22, 29], [22, 36], [n.hx, 36], [n.hx, 29]]; S.pi = 0; S.state = 'walk'; S.label = 'Ir a casa de ' + n.name;
+  S.path = [[19, 29], [19, 36], [n.hx, 36], [n.hx, 29]]; S.pi = 0; S.state = 'walk'; S.label = 'Ir a casa de ' + n.name;
   return true;
 }
 function endVisit(how) {
@@ -5366,8 +5388,8 @@ dyn.push({ update(dt, t) {
     S.face = angLerp(S.face, Math.atan2(fg.position.x - S.pos.x, fg.position.z - S.pos.z), .08);
     if (S.state === 'idle') {
       NV.phase = 'return';
-      S.item = { kind: 'walk', cell: [22, 24], label: 'Volver a casa' }; S.queue.unshift(S.item);
-      S.path = [[NV.hx, 36], [22, 36], [22, 29], [22, 24]]; S.pi = 0; S.state = 'walk'; S.label = 'Volver a casa';
+      S.item = { kind: 'walk', cell: [19, 24], label: 'Volver a casa' }; S.queue.unshift(S.item);
+      S.path = [[NV.hx, 36], [19, 36], [19, 29], [19, 24]]; S.pi = 0; S.state = 'walk'; S.label = 'Volver a casa';
     } else if (S.state !== 'do') { endVisit('left'); }
   } else if (NV.phase === 'return') {
     if (S.state === 'idle') endVisit('done');
