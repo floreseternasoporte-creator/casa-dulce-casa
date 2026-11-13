@@ -3602,6 +3602,7 @@ setInterval(() => {
   }
   if (DELIVERY.atAbs && jobAbs() >= DELIVERY.atAbs) {
     if (JOB.atWork) DELIVERY.atAbs = JOB.returnAbs;
+    else if (OUT.on) { /* el Sim está fuera: el pedido espera en la puerta (si se entregara ahora, outEnd borraría la cola y la comida se perdería) */ }
     else { DELIVERY.atAbs = 0; toast('¡Llegó tu pedido!'); say('¡A comer!'); sfx('ok'); enqueue({ kind: 'eat', label: 'Comer pedido', auto: false }); }
   }
   if (G.day > 1 && (G.day - 1) % 3 === 0 && G.min >= 480 && BILLS.lastBillDay !== G.day) billArrive();
@@ -5116,6 +5117,7 @@ function endParty(reason) {
   }
   if (reason === 'work') toast('Te fuiste a trabajar y la fiesta se acabó', true);
   else if (reason === 'faint') toast('Te desmayaste y la fiesta se acabó', true);
+  else if (reason === 'out') toast('Saliste de casa y la fiesta se acabó', true);
   updatePartyBar();
 }
 function partyPickAct() {
@@ -5211,6 +5213,7 @@ setInterval(() => {
   if (jobAbs() >= PARTY.endAbs) { endParty(); return; }
   if (JOB.atWork) { endParty('work'); return; }
   if (FAINT.on) { endParty('faint'); return; }
+  if (OUT.on) { endParty('out'); return; }
   updatePartyBar();
 }, 1000);
 { const _rwP = resetWorld; resetWorld = function () { _rwP(); PARTY.on = false; PARTY.ending = false; PARTY.plan = null; for (const gu of PARTY.guests) if (gu.fig) gu.fig.g.visible = false; PARTY.guests = []; PARTY.queue = []; updatePartyBar(); }; }
