@@ -147,6 +147,12 @@ html,body{height:100%;height:100dvh;margin:0;background:#12284f;color:var(--ink)
   padding:8px;width:min(320px,calc(100vw - 24px));max-height:max(140px,calc(100dvh - var(--th,100px) - var(--dh,60px) - 34px));overflow-y:auto;overscroll-behavior:contain}
 #moreMenu .btn{justify-content:flex-start}
 .panel h3,.ph{margin:0 0 8px;font:800 18px/1.15 var(--display);letter-spacing:-.01em;color:var(--ink)}
+/* botón X para cerrar paneles, catálogo y menú Más */
+.px{position:absolute;top:8px;right:8px;width:28px;height:28px;min-width:28px;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--ink);font:800 16px/1 var(--body);cursor:pointer;z-index:3}
+.px:hover{background:#f6d4d0;color:#8f241b}
+.panel:has(.px) h3,.panel:has(.px) .ph{padding-right:34px}
+#moreMenu .px{position:static;grid-column:1/-1;justify-self:end}
+.cat-h .px{position:static;flex:0 0 auto}
 #phone .btn,#city .btn,#fam .btn{display:flex;align-items:center;justify-content:flex-start;gap:8px;white-space:normal;text-align:left;line-height:1.2;width:100%}
 #phone .btn .ic,#phone .btn svg{display:inline-block;flex:none;width:18px;height:18px}
 #phone>div[style*="column"]{display:flex}
@@ -394,6 +400,7 @@ html,body,#stage{background:radial-gradient(ellipse at 50% 30%,#2a78c8,#0c2d62)}
 <div id="bubble" hidden></div>
 <div id="toasts"></div>
 <div id="help" class="panel" hidden>
+  <button class="px" type="button" aria-label="Cerrar">×</button>
   <h3>Cómo se juega</h3>
   <ul>
     <li><b>Vivir:</b> toca un mueble para ver sus acciones. Toca el suelo para caminar.</li>
@@ -3175,7 +3182,7 @@ const jobLvl = () => JT.filter(t => PROG.jobs >= t).length;
 function renderSkills() {
   const p = $('#skills'); if (!p || p.hidden) return;
   const jl = jobLvl(), nx = JT[jl];
-  let h = `<h3>${S.name}</h3><div class="job"><b>${CAREER[jl]}</b><span>$${420 + PAY[jl]} por jornada</span><small>${nx ? 'Ascenso en ' + (nx - PROG.jobs) + ' jornada(s)' : 'Puesto máximo'}</small></div>`;
+  let h = '<button class="px" type="button" aria-label="Cerrar">×</button>' + `<h3>${S.name}</h3><div class="job"><b>${CAREER[jl]}</b><span>$${420 + PAY[jl]} por jornada</span><small>${nx ? 'Ascenso en ' + (nx - PROG.jobs) + ' jornada(s)' : 'Puesto máximo'}</small></div>`;
   for (const k in SKILLS) {
     const l = skLvl(k), xp = PROG.xp[k] || 0, a = XPT[l - 1] || 0, b = XPT[l], f = b ? (xp - a) / (b - a) : 1;
     h += `<div class="sk"><span>${SKILLS[k]}</span><div class="pips">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= l ? 'f' : ''}"></i>`).join('')}</div><div class="bar"><i style="width:${Math.round(f * 100)}%;background:#6fdc3c"></i></div></div>`;
@@ -3218,7 +3225,7 @@ const FPREV = FLOORS.map(f => f[1](4, 4).image.toDataURL());
 let dRoom = ROOMS[0];
 function renderDecor() {
   const p = $('#decor'); if (p.hidden) return; const d = DEC[dRoom.name] || {};
-  p.innerHTML = '<h3>Decorar</h3><div class="dtabs">' + ROOMS.map((r, i) => `<button class="btn sm${r === dRoom ? ' on' : ''}" data-a="room" data-v="${i}">${r.name}</button>`).join('') + '</div>' +
+  p.innerHTML = '<button class="px" type="button" aria-label="Cerrar">×</button><h3>Decorar</h3><div class="dtabs">' + ROOMS.map((r, i) => `<button class="btn sm${r === dRoom ? ' on' : ''}" data-a="room" data-v="${i}">${r.name}</button>`).join('') + '</div>' +
     `<div class="dl">Suelo <small>$${FP}</small></div><div class="dsw">` + FLOORS.map((f, i) => `<button class="fsw${d.f === i ? ' on' : ''}" data-a="floor" data-v="${i}" title="${f[0]}" aria-label="${f[0]}" style="background-image:url(${FPREV[i]})"></button>`).join('') + '</div>' +
     `<div class="dl">Paredes <small>$${WP}</small></div><div class="dsw">` + WALLC.map(c => `<button class="sw${d.w === c ? ' on' : ''}" data-a="wall" data-v="${c}" style="background:#${c.toString(16).padStart(6, '0')}" aria-label="Color de pared"></button>`).join('') + '</div>';
 }
@@ -3522,7 +3529,7 @@ const DELIVERY = { atAbs: 0 };
 function renderPhone() {
   const p = $('#phone'); if (!p || p.hidden) return;
   const jl = jobLvl(), pay = 420 + PAY[jl], total = billsTotal();
-  p.innerHTML = '<h3 class="ph">Teléfono</h3>'
+  p.innerHTML = '<button class="px" type="button" aria-label="Cerrar">×</button><h3 class="ph">Teléfono</h3>'
     + '<div style="font-weight:800;color:var(--ink2);margin-bottom:6px">' + CAREER[jl] + ' · $' + pay + ' por día · lun–vie 9:00–17:00' + (JOB.atWork ? ' · en el trabajo' : JOB.skipDay === G.day ? ' · hoy día libre' : '') + '</div>'
     + '<div style="font-weight:800;color:var(--ink2);margin-bottom:8px">Facturas: ' + (total ? '$' + total + ' pendientes — toca el buzón' : 'al día') + '</div>'
     + '<div style="display:flex;flex-direction:column;gap:6px">'
@@ -3946,7 +3953,7 @@ setInterval(() => { if (G.started && G.speed && OUT.on && jobAbs() >= OUT.until)
 /* ---- Panel Ciudad ---- */
 function renderCity() {
   const p = $('#city'); if (!p || p.hidden) return;
-  p.innerHTML = '<h3>Ciudad</h3><div class="row"><button class="btn" data-v="view">Ver ciudad</button><button class="btn" data-v="home">Mi casa</button></div>'
+  p.innerHTML = '<button class="px" type="button" aria-label="Cerrar">×</button><h3>Ciudad</h3><div class="row"><button class="btn" data-v="view">Ver ciudad</button><button class="btn" data-v="home">Mi casa</button></div>'
     + Object.keys(PLACES).filter(k => PLACES[k].out).map(k => { const q = PLACES[k], o = q.out, mine = q.track && q.track === TR.id;
       return '<button class="btn pl" data-go="' + k + '"><b>' + q.n + '</b><small>' + o.t + ' · ' + (o.cost ? '$' + o.cost : 'gratis') + ' · ' + o.min + ' min</small>' + (mine ? '<em>★ Aquí trabajas</em>' : '') + '</button>'; }).join('')
     + '<div style="margin-top:8px;font-weight:800;font-size:12px;color:var(--ink2)">Tu trabajo: ' + (Object.values(PLACES).find(q => q.track === TR.id) || {}).n + '</div>';
@@ -4094,7 +4101,7 @@ function famAdd() {
 if (!FAM.list.length) { FAM.list = [famSnap()]; FAM.cur = 0; }
 function renderFam() {
   const p = $('#fam'); if (!p || p.hidden) return;
-  p.innerHTML = '<h3>Familia</h3>' + FAM.list.map((m0, i) => { const cur = i === FAM.cur, m = cur ? famSnap() : m0, jl = JT.filter(t => m.prog.jobs >= t).length, tr = TRACKS[m.tr] || TRACKS.oficina;
+  p.innerHTML = '<button class="px" type="button" aria-label="Cerrar">×</button><h3>Familia</h3>' + FAM.list.map((m0, i) => { const cur = i === FAM.cur, m = cur ? famSnap() : m0, jl = JT.filter(t => m.prog.jobs >= t).length, tr = TRACKS[m.tr] || TRACKS.oficina;
     return '<button class="btn pl" data-i="' + i + '"><b>' + m.name + (cur ? ' · jugando' : '') + '</b><small>' + tr.names[jl] + ' · ' + (m.traits.map(k => TRAITS.defs[k].n).join(', ') || 'sin rasgos') + '</small>' + (cur ? '<em>★ Sim activo</em>' : '') + '</button>'; }).join('')
     + (FAM.list.length < 3 ? '<button class="btn add" data-add="1">+ Nuevo miembro</button>' : '');
 }
@@ -4995,7 +5002,7 @@ function updatePartyBar() {
 const partyLvl = i => { const pts = NG.list[i].pts; return RLN[RT.filter(x => pts >= x).length]; };
 function planHTML() {
   const plan = PARTY.plan;
-  let h = '<h3 class="ph">' + (plan.mode === 'party' ? 'Organizar una fiesta' : 'Invitar amigos') + '</h3>';
+  let h = '<button class="px" type="button" aria-label="Cerrar">×</button><h3 class="ph">' + (plan.mode === 'party' ? 'Organizar una fiesta' : 'Invitar amigos') + '</h3>';
   h += '<div style="font-weight:800;color:var(--ink2);margin-bottom:6px">¿A quién invitas?</div><div style="display:flex;flex-direction:column;gap:6px">';
   NG.list.forEach((n, i) => { h += '<button class="btn' + (plan.sel[i] ? ' on' : '') + '" data-p="guest" data-i="' + i + '" style="text-align:left">' + n.name + ' · ' + partyLvl(i) + '</button>'; });
   h += '</div>';
@@ -5359,6 +5366,39 @@ NV.next = jobAbs() + 400 + Math.random() * 800;
   placeObj = function (...a) { const r = _place.apply(this, a); if (G.started && !restoring && performance.now() - lastP > 150) { lastP = performance.now(); sfx('place'); } return r; };
   $('#selSell').addEventListener('click', () => sfx('cash'));
 }
+/* ===== Botón X para cerrar paneles, catálogo y menú Más + Escape cierra el panel abierto ===== */
+{
+  const PX = '<button class="px" type="button" aria-label="Cerrar">×</button>';
+  const BTN = { skills: 'btnSkills', decor: 'btnDecor', phone: 'btnPhone', city: 'btnCity', fam: 'btnFam', moreMenu: 'btnMore' };
+  const addX = p => { if (p && !p.querySelector(':scope > .px')) p.insertAdjacentHTML('afterbegin', PX); };
+  const closePanel = id => {
+    const p = document.getElementById(id); if (!p) return;
+    p.hidden = true;
+    const b = BTN[id] && document.getElementById(BTN[id]);
+    if (b) b.classList.remove('on');
+  };
+  // los paneles se re-renderizan (innerHTML) al abrirse: la X va DENTRO del HTML de cada render
+  // (no envolver renderCity/renderFam: sus setInterval capturan la función original)
+  // menú Más y catálogo no se re-renderizan: la X se pone una vez
+  addX(document.getElementById('moreMenu'));
+  const ch = document.querySelector('.cat-h'); if (ch && !ch.querySelector('.px')) ch.insertAdjacentHTML('beforeend', PX);
+  // un solo clic delegado: la X cierra su panel (el catálogo sale del modo Construir)
+  document.addEventListener('click', e => {
+    const x = e.target.closest('.px'); if (!x) return;
+    e.stopPropagation();
+    const p = x.closest('.panel'); if (!p) return;
+    if (p.id === 'catalog') { setMode('live'); return; }
+    closePanel(p.id);
+  });
+  // Escape cierra el panel abierto (el menú contextual y la ayuda ya los cierra el teclado)
+  window.addEventListener('keydown', e => {
+    if (!e.key || e.key.toLowerCase() !== 'escape') return;
+    if (e.target && e.target.tagName === 'INPUT') return;
+    const open = ['skills', 'decor', 'phone', 'city', 'fam', 'moreMenu'].find(id => { const p = document.getElementById(id); return p && !p.hidden; });
+    if (open) closePanel(open);
+  });
+}
+
 boot();
 
 
