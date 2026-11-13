@@ -3929,6 +3929,7 @@ function building(p) {
   g.traverse(m => { m.castShadow = false; m.receiveShadow = false; }); TOWN.add(g);
 }
 Object.values(PLACES).forEach(p => { if (p.w) building(p); });
+var BUILDING9 = building;
 function tree(x, z, k = 1) { const g = new THREE.Group(); g.position.set(x, 0, z); cy(g, .18 * k, .24 * k, 1.6 * k, 0x7b5133); sp(g, 1.1 * k, 0x3f9a4a, 0, 2.3 * k, 0); sp(g, .8 * k, 0x56b85a, .5 * k, 3 * k, .2 * k); g.traverse(m => { m.castShadow = false; }); TOWN.add(g); }
 function lamp(x, z) { const g = new THREE.Group(); g.position.set(x, 0, z); cy(g, .06, .08, 4, 0x3a3f4a); sp(g, .28, 0, 0, 4.1, 0, { mat: lampMat }); TOWN.add(g); }
 { // acera sur, parque, árboles y farolas
@@ -3967,11 +3968,11 @@ function goOut(k) {
   toast(o.t + ' · vuelve en ' + o.min + ' min'); note(523.3, .05, .4); saveSoon(); if (CAR.owned) carRoute(p.cx, false);
 }
 function outEnd() {
-  const o = PLACES[OUT.k].out; OUT.on = false; if (CAR.owned) carRoute(PLACES[OUT.k].cx, true);
+  const o = PLACES[OUT.k].out; OUT.on = false; const k9 = OUT.k; if (CAR.owned) carRoute(PLACES[OUT.k].cx, true);
   for (const k in o.fx) S.needs[k] = clamp(S.needs[k] + o.fx[k], 0, 100); S.needs.social = clamp(S.needs.social + (o.soc || 25), 0, 100); if (OUT.k === 'tienda') foodAdd(8);
   if (o.xp) { PROG.xp[o.xp[0]] = (PROG.xp[o.xp[0]] || 0) + o.xp[1] * (HAS('artistico') ? 2 : 1); try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ } }
   S.pos.x = 22.5; S.pos.z = 27.6; S.face = Math.PI; S.y = FLOOR_Y; sim.root.visible = true; S.state = 'idle'; S.label = ''; S.queue.length = 0;
-  camHome(); say('¡Qué buen rato!'); toast('De vuelta en casa · ' + o.t + ' ✔'); note(659.3, .06, .5); saveSoon();
+  camHome(); say('¡Qué buen rato!'); toast('De vuelta en casa · ' + o.t + ' ✔'); note(659.3, .06, .5); saveSoon(); if (typeof window.OUTX9 === 'function') window.OUTX9(k9);
 }
 { const _gw = goToWork; goToWork = function () { if (FAINT.on) { FAINT.on = false; sim.root.rotation.z = 0; } OUT.on = false; _gw(); }; }
 setInterval(() => { if (G.started && G.speed && OUT.on && jobAbs() >= OUT.until) outEnd(); }, 700);
@@ -5425,6 +5426,255 @@ NV.next = jobAbs() + 400 + Math.random() * 800;
     const open = ['skills', 'decor', 'phone', 'city', 'fam', 'moreMenu'].find(id => { const p = document.getElementById(id); return p && !p.hidden; });
     if (open) closePanel(open);
   });
+}
+
+/* ===== Parche 9: correcciones y mucho contenido nuevo estilo Los Sims ===== */
+{
+  const PI9 = Math.PI, N9 = [];
+  const nd9 = (id, o) => { def(id, o); N9.push(id); };
+  const glow9 = (g, mat, col, range, level, y) => { const l = new THREE.PointLight(col, 0, range, 1.7); l.position.set(0, y, 0); g.add(l); nightLights.push({ light: l, mat, level }); };
+  const emis = (c, k = 0) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: k, roughness: .5 });
+  const FA = (x = 0, z = .75, y = 0) => [{ at: [x, z, PI9, y], stand: [x, 1] }];
+  const clear = (c, op = .4) => ({ extra: { transparent: true, opacity: op } });
+
+  SKILLS.mecanica = 'Mecánica';
+  Object.assign(ACTSK, { bonsai: 'jardineria', honey: 'jardineria', zen: 'jardineria', pizza: 'cocina', wine: 'carisma', pottery: 'pintura', carpentry: 'mecanica', chem: 'logica', harp: 'musica', jukebox: 'musica', dancefloor: 'ejercicio' });
+  FOODNEED.pizza = 1;
+
+  /* ---------- SALA ---------- */
+  nd9('jukebox', { name: 'Gramola', cat: 'sala', price: 780, w: 1, d: 1, build(g) {
+    bx(g, .8, 1.5, .5, 0xc0392b, 0, 0, -.15, { r: .08 }); bx(g, .6, .5, .04, 0xffd23f, 0, .9, .1, { mat: glowMat(0xffd23f, .7) }); bx(g, .5, .18, .04, 0x2a2a30, 0, .55, .1);
+    [0x4dff8f, 0xff5ad6, 0x4dd0ff].forEach((c, i) => sp(g, .04, c, -.15 + i * .15, .7, .13, { mat: glowMat(c, 1) })); bx(g, .7, .1, .5, 0x2a2a30, 0, 1.5, -.15, { r: .05 });
+  }, acts: [{ id: 'jukebox', label: 'Poner música y bailar', min: 20, fx: { fun: 30, energy: -6 }, pose: 'dance', spots: FA(0, .85) }] });
+  nd9('dancefloor', { name: 'Pista de baile', cat: 'sala', price: 900, w: 3, d: 3, floor: true, build(g) {
+    const cols = [0xff4d6d, 0x4dd0ff, 0xffd23f, 0x7dff6a];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) bx(g, .98, .04, .98, 0, -1 + i, 0, -1 + j, { mat: glowMat(cols[(i + j) % 4], .5) });
+  }, acts: [{ id: 'dancefloor', label: 'Bailar en la pista', min: 30, fx: { fun: 36, social: 12, energy: -8 }, pose: 'dance', spots: [[0, 2], [2, 0], [-2, 0]].map(s => ({ at: [0, 0, 0, .05], stand: s })) }] });
+  nd9('crystalball', { name: 'Bola de cristal', cat: 'sala', price: 420, w: 1, d: 1, build(g) {
+    legs(g, .6, .6, .7, 0x3a2a5a, .06, .03); cy(g, .34, .34, .05, 0x5a3a8a, 0, .7, 0); cy(g, .12, .16, .08, 0xd8b44a, 0, .75, 0, { metal: .8 });
+    sp(g, .17, 0, 0, .98, 0, { mat: new THREE.MeshStandardMaterial({ color: 0xb8a0ff, emissive: 0x7a5aff, emissiveIntensity: .6, transparent: true, opacity: .85, roughness: .1 }) });
+  }, acts: [{ id: 'fortune', label: 'Leer la fortuna', min: 10, fx: { fun: 12 }, pose: 'wave', spots: FA(0, .75) }] });
+  nd9('photobooth', { name: 'Cabina de fotos', cat: 'sala', price: 640, w: 1, d: 1, build(g) {
+    bx(g, .9, 2.1, .9, 0x2a2f6a, 0, 0, 0, { r: .04 }); bx(g, .7, .9, .04, 0xc0392b, 0, .2, .46); bx(g, .5, .3, .02, 0xffd23f, 0, 1.75, .46, { mat: glowMat(0xffd23f, .8) });
+  }, acts: [{ id: 'photobooth', label: 'Sacarse fotos', min: 8, fx: { fun: 22, social: 6 }, pose: 'wave', cost: 5, spots: FA(0, .85) }] });
+  nd9('rockinghorse', { name: 'Caballito mecedor', cat: 'sala', price: 260, w: 1, d: 1, seat: true, build(g) {
+    for (const x of [-.2, .2]) bx(g, .05, .06, .9, WOOD_D, x, 0, 0, { r: .02 });
+    bx(g, .3, .3, .6, 0xc9a06a, 0, .3, 0, { r: .08 }); bx(g, .16, .4, .16, 0xc9a06a, 0, .5, .3, { r: .05, rx: -.3 }); sp(g, .11, 0xc9a06a, 0, .95, .38); bx(g, .08, .3, .04, 0x3a2418, 0, .85, .22);
+    for (const [x, z] of [[-.12, .22], [.12, .22], [-.12, -.22], [.12, -.22]]) bx(g, .05, .3, .05, 0xc9a06a, x, .05, z);
+  }, acts: [{ id: 'ride', label: 'Montar el caballito', min: 15, fx: { fun: 22 }, pose: 'sit', spots: [{ at: [0, 0, 0, .45], stand: [0, 1] }] }] });
+
+  /* ---------- COCINA ---------- */
+  nd9('popcorn', { name: 'Máquina de palomitas', cat: 'cocina', price: 350, w: 1, d: 1, build(g) {
+    counterBase(g, 1); bx(g, .5, .5, .4, 0xc0392b, 0, .92, -.2, { r: .03 }); bx(g, .42, .36, .02, 0xdff3ff, 0, 1.0, .0, clear(0xdff3ff, .45));
+    for (let i = 0; i < 6; i++) sp(g, .04, 0xfff3b0, -.12 + (i % 3) * .1, 1.0 + (i % 2) * .06, -.12 + (i % 2) * .06);
+  }, acts: [{ id: 'popcorn', label: 'Hacer palomitas', min: 6, fx: { hunger: 12, fun: 10 }, pose: 'fridge', cost: 4, spots: FA(0, .65) }] });
+  nd9('winerack', { name: 'Vinoteca', cat: 'cocina', price: 520, w: 1, d: 1, build(g) {
+    bx(g, .8, 1.6, .5, WOOD_D, 0, 0, -.2, { r: .03 });
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) cy(g, .045, .045, .4, (r + c) % 2 ? 0x3a5a2a : 0x6a1a2a, -.22 + c * .22, .25 + r * .35, .06, { rx: PI9 / 2 });
+  }, acts: [{ id: 'wine', label: 'Tomar una copa de vino', min: 12, fx: { fun: 14, social: 6 }, pose: 'fridge', cost: 12, spots: FA(0, .75) }] });
+  nd9('pizzaoven', { name: 'Horno de piedra', cat: 'cocina', price: 880, w: 1, d: 1, build(g) {
+    bx(g, .9, .5, .8, 0xb85a3a, 0, 0, -.1, { r: .04 }); sp(g, .42, 0xc86a42, 0, .62, -.1, { sy: .8 }); bx(g, .34, .28, .04, 0x15110f, 0, .35, .3, { mat: glowMat(0xff7a1f, .9) }); cy(g, .09, .1, .5, 0x8a4a30, 0, 1.0, -.2);
+  }, acts: [{ id: 'pizza', label: 'Hacer una pizza', min: 30, fx: { hunger: 44, fun: 12 }, pose: 'cook', spots: FA(0, .8) }] });
+
+  /* ---------- BAÑO ---------- */
+  nd9('tubround', { name: 'Jacuzzi interior', cat: 'bano', price: 1600, w: 2, d: 2, build(g) {
+    cy(g, .95, .9, .6, 0xe8e4d8, 0, 0, 0, { seg: 22 });
+    cy(g, .8, .8, .02, 0, 0, .58, 0, { seg: 22, mat: new THREE.MeshStandardMaterial({ color: 0x5fd0f0, transparent: true, opacity: .8, roughness: .05 }) });
+    for (let i = 0; i < 6; i++) sp(g, .07, 0xffffff, Math.cos(i * 1.1) * .45, .62, Math.sin(i * 1.1) * .45, { rough: .2 });
+  }, acts: [{ id: 'bath', label: 'Relajarse en el jacuzzi', min: 40, fx: { hygiene: 100, fun: 25, energy: 8 }, pose: 'bath', spots: [{ at: [0, 0, 0, .2], stand: [0, 1.6] }] }] });
+
+  /* ---------- DORMITORIO ---------- */
+  const SLP = [{ at: [-.5, -.1, 0, .66], stand: [-.5, 1.5] }, { at: [.5, -.1, 0, .66], stand: [.5, 1.5] }];
+  nd9('canopybed', { name: 'Cama con dosel', cat: 'dormir', price: 1900, w: 2, d: 2, build(g) {
+    bedModel(g, 2, 2, 0xc05a8a, 0x9a3a6a);
+    for (const x of [-.97, .97]) for (const z of [-.97, .97]) bx(g, .06, 2.2, .06, WOOD_D, x, 0, z);
+    bx(g, 2, .05, 2, 0xf0c0d8, 0, 2.2, 0, clear(0xf0c0d8, .5));
+  }, acts: [{ id: 'sleep', label: 'Dormir', min: 480, fx: { energy: 100, bladder: -25, hunger: -20, fun: 10 }, pose: 'sleep', spots: SLP }, { id: 'nap', label: 'Echar una siesta', min: 90, fx: { energy: 38 }, pose: 'sleep', spots: SLP }] });
+
+  /* ---------- ESTUDIO ---------- */
+  nd9('pottery', { name: 'Torno de alfarería', cat: 'estudio', price: 760, w: 1, d: 1, build(g) {
+    bx(g, .7, .5, .6, WOOD_D, 0, 0, -.1, { r: .03 }); cy(g, .2, .2, .04, 0xc9c4b8, 0, .5, -.1); cy(g, .09, .12, .2, 0xc86a42, 0, .54, -.1);
+    cy(g, .2, .2, .05, 0x3b3f4a, 0, .38, .35); cy(g, .025, .025, .38, 0x2a2a2e, 0, 0, .35);
+  }, acts: [{ id: 'pottery', label: 'Hacer cerámica', min: 60, fx: { fun: 18, energy: -6 }, earn: 150, pose: 'type', spots: [{ at: [0, .35, PI9, .42], stand: [0, 1.2] }] }] });
+  nd9('workbench', { name: 'Banco de carpintería', cat: 'estudio', price: 680, w: 2, d: 1, build(g) {
+    bx(g, 1.8, .08, .7, WOOD, 0, .8, -.15, { r: .02 }); legs(g, 1.8, .7, .8, WOOD_D, .08, .05); bx(g, .5, .14, .4, 0xc0392b, .5, .88, -.15, { r: .02 }); bx(g, .8, .04, .1, STEEL, -.4, .88, -.15, { metal: .8 });
+    bx(g, 1.8, .9, .04, 0xb98350, 0, 1.2, -.48);
+  }, acts: [{ id: 'carpentry', label: 'Carpintería', min: 60, fx: { fun: 16, energy: -10, hygiene: -8 }, earn: 180, pose: 'cook', spots: [-.5, .5].map(x => ({ at: [x, .8, PI9, 0], stand: [x, 1.2] })) }] });
+  nd9('chemset', { name: 'Laboratorio de química', cat: 'estudio', price: 740, w: 2, d: 1, build(g) {
+    bx(g, 1.8, .08, .7, 0xe8e8f0, 0, .85, -.15, { r: .02 }); legs(g, 1.8, .7, .85, STEEL, .08, .04);
+    [[-.5, 0x6fdc3c], [-.1, 0xff5ad6], [.3, 0x4dd0ff], [.65, 0xffd23f]].forEach(([x, c]) => { cy(g, .07, .1, .2, c, x, .93, -.15, clear(c, .8)); cy(g, .03, .03, .1, 0xdfe9f2, x, 1.13, -.15); });
+  }, acts: [{ id: 'chem', label: 'Hacer experimentos', min: 40, fx: { fun: 26, energy: -6 }, pose: 'cook', spots: [-.5, .5].map(x => ({ at: [x, .8, PI9, 0], stand: [x, 1.2] })) }] });
+  nd9('harp', { name: 'Arpa', cat: 'estudio', price: 1500, w: 1, d: 1, build(g) {
+    bx(g, .06, 1.6, .06, 0xd8b44a, -.15, 0, -.1, { metal: .6 }); bx(g, .5, .06, .08, 0xd8b44a, .1, 1.55, -.1, { metal: .6, rz: -.35 }); bx(g, .06, 1.3, .06, 0xd8b44a, .3, .1, -.1, { metal: .6, rz: .1 });
+    for (let i = 0; i < 6; i++) bx(g, .01, 1.2 - i * .12, .01, 0xf5f2ea, -.1 + i * .06, .15, -.1);
+    cy(g, .2, .2, .05, 0x3b3f4a, 0, .39, .35); cy(g, .025, .025, .38, 0x2a2a2e, 0, 0, .35);
+  }, acts: [{ id: 'harp', label: 'Tocar el arpa', min: 40, fx: { fun: 34, energy: -4 }, pose: 'piano', spots: [{ at: [0, .35, PI9, .44], stand: [0, 1.2] }] }] });
+
+  /* ---------- JARDÍN ---------- */
+  nd9('tent', { name: 'Tienda de campaña', cat: 'jardin', price: 360, w: 2, d: 2, out: true, build(g) {
+    const c = new THREE.Mesh(new THREE.ConeGeometry(1.35, 1.7, 4), M(0xe8a04a, .9)); c.position.y = .85; c.rotation.y = PI9 / 4; shadowize(c); g.add(c);
+    bx(g, .6, .9, .04, 0x3a2418, 0, 0, .66, { rx: -.2 });
+  }, acts: [{ id: 'camp', label: 'Dormir en la tienda', min: 120, fx: { energy: 55, fun: 12 }, pose: 'sleep', spots: [{ at: [0, 0, 0, .08], stand: [0, 1.6] }] }] });
+  nd9('beehive', { name: 'Colmena', cat: 'jardin', price: 280, w: 1, d: 1, out: true, build(g) {
+    legs(g, .5, .5, .4, WOOD_D, .05, .03); for (let i = 0; i < 3; i++) bx(g, .5, .2, .5, i % 2 ? 0xe8c44a : 0xf2d668, 0, .4 + i * .2, 0, { r: .03 });
+    bx(g, .56, .06, .56, WOOD_D, 0, 1.0, 0); for (let i = 0; i < 4; i++) sp(g, .02, 0x2a2a30, Math.sin(i * 2) * .3, .9 + i * .08, Math.cos(i * 2) * .3);
+  }, acts: [{ id: 'honey', label: 'Recoger miel', min: 15, fx: { hunger: 14, fun: 6 }, pose: 'cook', spots: FA(0, .85) }] });
+  nd9('zengarden', { name: 'Jardín zen', cat: 'jardin', price: 540, w: 2, d: 2, out: true, build(g) {
+    bx(g, 2, .1, 2, 0xe8dcc4, 0, 0, 0, { r: .04 }); for (let i = 0; i < 6; i++) bx(g, 1.6, .02, .04, 0xcfc4a8, 0, .1, -.75 + i * .3);
+    sp(g, .22, 0x6a6a72, -.4, .16, .3, { sy: .7 }); sp(g, .15, 0x7a7a82, .35, .12, -.2, { sy: .7 }); sp(g, .1, 0x5a5a62, .5, .1, .5, { sy: .7 });
+  }, acts: [{ id: 'zen', label: 'Rastrillar el jardín zen', min: 20, fx: { fun: 18, energy: 4 }, pose: 'cook', spots: [{ at: [0, 1.1, PI9, .1], stand: [0, 1.6] }] }] });
+  nd9('wishingwell', { name: 'Pozo de los deseos', cat: 'jardin', price: 480, w: 1, d: 1, out: true, build(g) {
+    cy(g, .42, .45, .55, 0x9a948a, 0, 0, 0, { seg: 14 }); cy(g, .32, .32, .02, 0x2a6a9a, 0, .55, 0, { seg: 14 });
+    for (const x of [-.4, .4]) bx(g, .06, .9, .06, WOOD_D, x, .55, 0); bx(g, 1, .06, .4, 0xb04a3a, 0, 1.45, 0, { rx: .0 });
+  }, acts: [{ id: 'wishwell', label: 'Pedir un deseo', min: 5, fx: { fun: 8 }, pose: 'wave', cost: 5, spots: FA(0, .85) }] });
+  nd9('scarecrow', { name: 'Espantapájaros', cat: 'jardin', price: 120, w: 1, d: 1, out: true, build(g) {
+    bx(g, .06, 1.6, .06, WOOD_D, 0, 0, 0); bx(g, 1.0, .06, .06, WOOD_D, 0, 1.15, 0); bx(g, .3, .5, .15, 0x3a6fb0, 0, .75, 0, { r: .04 }); sp(g, .14, 0xe8d49a, 0, 1.6, 0);
+    cy(g, .2, .2, .02, 0x6a4a2a, 0, 1.72, 0); cy(g, .1, .12, .14, 0x6a4a2a, 0, 1.74, 0);
+  } });
+  nd9('windmill', { name: 'Molino decorativo', cat: 'jardin', price: 600, w: 1, d: 1, out: true, build(g) {
+    cy(g, .35, .55, 1.8, 0xe6dccb, 0, 0, 0); const c = new THREE.Mesh(new THREE.ConeGeometry(.5, .6, 8), M(0xb5543a)); c.position.y = 2.1; shadowize(c); g.add(c);
+    for (let i = 0; i < 4; i++) { const a = i * PI9 / 2; bx(g, .12, .8, .02, 0xf5f2ea, Math.sin(a) * .4, 1.65 + Math.cos(a) * .4 - .4, .5, { rz: -a }); }
+  } });
+  nd9('pinata', { name: 'Piñata', cat: 'jardin', price: 120, w: 1, d: 1, anywhere: true, build(g) {
+    cy(g, .03, .04, 2.1, WOOD_D, 0, 0, -.2); bx(g, .04, .04, .6, WOOD_D, 0, 2.1, .05); cy(g, .006, .006, .5, STEEL, 0, 1.6, .3);
+    sp(g, .2, 0xff5ad6, 0, 1.5, .3, { sy: .9 }); sp(g, .08, 0xffd23f, .15, 1.62, .3); sp(g, .08, 0x4dd0ff, -.15, 1.45, .3);
+  }, acts: [{ id: 'pinata', label: 'Romper la piñata', min: 12, fx: { fun: 26, energy: -4 }, pose: 'dance', spots: FA(0, 1.0) }] });
+
+  /* ---------- DECO ---------- */
+  nd9('bonsai', { name: 'Bonsái', cat: 'deco', price: 260, w: 1, d: 1, build(g) {
+    legs(g, .5, .5, .5, WOOD_D, .05, .03); bx(g, .55, .05, .55, WOOD, 0, .5, 0, { r: .01 }); cy(g, .16, .13, .1, 0x8a5a3a, 0, .55, 0); cy(g, .025, .035, .22, 0x5a3a22, 0, .65, 0);
+    for (let i = 0; i < 4; i++) sp(g, .1 - i * .01, i % 2 ? 0x3fa85a : 0x2f8f4a, Math.sin(i * 2) * .08, .9 + i * .03, Math.cos(i * 2) * .08, { sy: .7 });
+  }, acts: [{ id: 'bonsai', label: 'Podar el bonsái', min: 20, fx: { fun: 14 }, pose: 'cook', spots: FA(0, .75) }] });
+  nd9('piggybank', { name: 'Alcancía', cat: 'deco', price: 80, w: 1, d: 1, build(g) {
+    legs(g, .5, .5, .5, WOOD_D, .05, .03); bx(g, .5, .04, .5, WOOD, 0, .5, 0); sp(g, .14, 0xf08aa4, 0, .68, 0, { sy: .85 }); sp(g, .06, 0xf4a0b8, .13, .7, 0);
+    for (const s of [-1, 1]) bx(g, .04, .05, .03, 0xf08aa4, s * .06, .8, .06); bx(g, .05, .02, .01, 0x3a2a2a, 0, .82, 0);
+  }, acts: [{ id: 'piggy', label: 'Ahorrar $100', min: 3, fx: { fun: 2 }, pose: 'fridge', cost: 100, spots: FA(0, .75) }, { id: 'piggybreak', label: 'Romper la alcancía', min: 3, fx: { fun: 6 }, pose: 'fridge', spots: FA(0, .75) }] });
+  nd9('smokealarm', { name: 'Alarma de humo', cat: 'deco', price: 60, w: 1, d: 1, floor: true, build(g) {
+    cy(g, .12, .12, .05, 0xf5f2ea, 0, 2.2, -.44, { rx: PI9 / 2 }); sp(g, .02, 0xe8564a, .05, 2.2, -.4, { mat: glowMat(0xe8564a, 1) });
+  } });
+  nd9('neonsign', { name: 'Letrero de neón', cat: 'deco', price: 340, w: 1, d: 1, floor: true, build(g) {
+    bx(g, .9, .44, .05, 0x1c1c22, 0, 1.6, -.46, { r: .01 }); const m = emis(0xff3ab0, 0);
+    bx(g, .6, .04, .03, 0, 0, 1.7, -.42, { mat: m }); bx(g, .4, .04, .03, 0, 0, 1.58, -.42, { mat: m }); sp(g, .05, 0, .32, 1.64, -.42, { mat: m });
+    glow9(g, m, 0xff5ac0, 5, .6, 1.6);
+  } });
+  nd9('discoball', { name: 'Bola de discoteca', cat: 'deco', price: 220, w: 1, d: 1, floor: true, build(g) {
+    cy(g, .005, .005, .5, STEEL, 0, 2.0, 0); sp(g, .26, 0xdfe9f2, 0, 1.85, 0, { rough: .1, metal: .9, mat: emis(0xdfe9f2, .25) });
+    [0xff4d6d, 0x4dd0ff, 0xffd23f].forEach((c, i) => sp(g, .03, c, Math.cos(i * 2.1) * .3, 1.85 + Math.sin(i) * .1, Math.sin(i * 2.1) * .3, { mat: glowMat(c, 1) }));
+  } });
+  nd9('fairylights', { name: 'Guirnalda de luces', cat: 'deco', price: 130, w: 2, d: 1, floor: true, build(g) {
+    const m = emis(0xfff1b8, 0);
+    for (let i = 0; i < 10; i++) sp(g, .03, 0, -.9 + i * .2, 2.3 - Math.sin(i / 9 * PI9) * .12, -.45, { mat: m });
+    glow9(g, m, 0xffe9a8, 5, .5, 2.2);
+  } });
+  nd9('tapestry', { name: 'Tapiz', cat: 'deco', price: 170, w: 2, d: 1, floor: true, build(g) {
+    bx(g, 1.7, .04, .04, WOOD_D, 0, 2.0, -.45); bx(g, 1.5, 1.2, .03, 0x8a3a52, 0, .85, -.44, { r: .01 }); bx(g, 1.2, .9, .035, 0xd8b44a, 0, 1.0, -.43); bx(g, .7, .5, .04, 0x2f5d8a, 0, 1.2, -.42);
+  } });
+  nd9('poster', { name: 'Póster retro', cat: 'deco', price: 70, w: 1, d: 1, floor: true, build(g) {
+    bx(g, .7, .95, .03, 0xf5f2ea, 0, .95, -.46, { r: .01 }); bx(g, .55, .5, .035, 0xe8564a, 0, 1.3, -.445); bx(g, .55, .3, .035, 0x3a8fe0, 0, 1.0, -.445); sp(g, .1, 0xffd23f, 0, 1.45, -.43, { sy: 1 });
+  } });
+
+  /* ---------- Sistemas nuevos ---------- */
+  const PIG = { n: 0 }; try { PIG.n = +localStorage.getItem('cdcPig') || 0; } catch (e) { /* sin guardado */ }
+  const pigSave = () => { try { localStorage.setItem('cdcPig', String(PIG.n)); } catch (e) { /* nada */ } };
+
+  /* Fuego, fortuna, experimentos y demás efectos de las acciones nuevas */
+  { const _f9 = finishDo; finishDo = function () { const a = S.act, c = S.cancelled; _f9(); if (!a || c) return;
+    const id = a.id, hearts = n => { for (let i = 0; i < n; i++) emit('heart', S.pos.x + (i - n / 2) * .25, S.y + 2.2, S.pos.z, 0, .6, 0, 1.6, .28); };
+    if (['cook', 'grill', 'bake', 'pizza'].includes(id) && skLvl('cocina') < 2 && Math.random() < .14) {
+      if (objects.some(o => o.id === 'smokealarm')) toast('🔔 Sonó la alarma de humo: apagaste el fuego a tiempo');
+      else { G.money = Math.max(0, G.money - 60); S.needs.fun = clamp(S.needs.fun - 10, 0, 100); S.needs.hygiene = clamp(S.needs.hygiene - 12, 0, 100); toast('🔥 ¡Se incendió la cocina! −$60 (una alarma de humo ayuda)', true); say('¡FUEGO!', 3); sfx('error');
+        for (let i = 0; i < 4; i++) emit('steam', S.pos.x + (i - 1.5) * .3, S.y + 1.2, S.pos.z, 0, .6, 0, 1.6, .4); }
+    }
+    if (id === 'fortune') { const r = Math.random();
+      if (r < .3) { G.money += 120; toast('🔮 Te espera una fortuna: +$120'); sfx('coin'); } else if (r < .55) { S.needs.fun = clamp(S.needs.fun + 25, 0, 100); toast('🔮 Un gran amor se acerca'); hearts(3); }
+      else if (r < .8) { S.needs.energy = clamp(S.needs.energy + 15, 0, 100); toast('🔮 Tendrás días llenos de energía'); } else { S.needs.fun = clamp(S.needs.fun - 10, 0, 100); toast('🔮 Se avecina una mala racha…', true); } }
+    if (id === 'chem' && Math.random() < .09) { S.needs.hygiene = clamp(S.needs.hygiene - 30, 0, 100); G.money = Math.max(0, G.money - 40); toast('💥 ¡El experimento explotó! −$40', true); say('¡Uy!', 2.5); sfx('error'); for (let i = 0; i < 4; i++) emit('steam', S.pos.x + (i - 1.5) * .3, S.y + 1.2, S.pos.z, 0, .6, 0, 1.4, .35); }
+    if (id === 'piggy') { PIG.n += 100; pigSave(); toast('🐷 Ahorrado. En la alcancía: $' + PIG.n); sfx('coin'); }
+    if (id === 'piggybreak') { if (PIG.n <= 0) toast('La alcancía está vacía'); else { const v = Math.round(PIG.n * 1.1); G.money += v; PIG.n = 0; pigSave(); toast('🐷 Rompiste la alcancía: +$' + v + ' (10% de interés)'); sfx('cash'); } }
+    if (id === 'wishwell' && Math.random() < .2) { G.money += 100; toast('⛲ ¡El deseo se cumplió! +$100'); sfx('coin'); }
+    if (id === 'honey') { foodAdd(1); toast('🍯 +1 porción de comida'); }
+    if (id === 'pinata') { if (Math.random() < .4) { G.money += 40; S.needs.hunger = clamp(S.needs.hunger + 10, 0, 100); toast('🍬 ¡Salieron dulces y monedas! +$40'); } hearts(2); }
+    if (id === 'photobooth') { hearts(2); say('¡Qué fotos más lindas!', 2.5); }
+    if (HAS('genio') && ACTSK[id] === 'logica') PROG.xp.logica = (PROG.xp.logica || 0) + 3;
+  }; }
+
+  /* Casino y centro comercial en la Ciudad */
+  PLACES.casino = { n: 'Casino Dorado', cx: 126, w: 14, d: 12, h: 8, col: 0x3a2a5a, sg: '#c9a227', out: { t: 'Jugar en el casino', cost: 40, min: 60, fx: { fun: 25, energy: -6 }, soc: 15 } };
+  PLACES.mall = { n: 'Centro Comercial', cx: -66, w: 16, d: 12, h: 8, col: 0xe8c9d8, sg: '#c2467a', out: { t: 'Ir de compras', cost: 35, min: 75, fx: { fun: 22, energy: -8 }, soc: 20 } };
+  BUILDING9(PLACES.casino); BUILDING9(PLACES.mall);
+  window.OUTX9 = function (k) {
+    if (k === 'casino') { const bet = Math.min(150, Math.max(20, Math.floor(G.money * .15))), r = Math.random();
+      if (r < .04) { G.money += bet * 10; toast('🎰 ¡JACKPOT! +$' + bet * 10); sfx('level'); confetti(); }
+      else if (r < .42) { G.money += bet * 2; toast('🎰 ¡Ganaste! +$' + bet * 2); sfx('coin'); }
+      else { G.money = Math.max(0, G.money - bet); toast('🎰 Perdiste $' + bet, true); } }
+    if (k === 'mall') { const R = n => Math.floor(Math.random() * n); try { LOOK.shirt = R(SHIRTS.length); LOOK.pants = R(PANTS.length); setLook(); toast('🛍️ Estrenas ropa nueva'); } catch (e) { /* sin cambio de ropa */ }
+      if (Math.random() < .35) { foodAdd(4); toast('🛍️ Compraste víveres: +4 porciones'); } }
+  };
+
+  /* Horóscopo y lotería por teléfono */
+  const HORO = { day: 0 }; try { Object.assign(HORO, JSON.parse(localStorage.getItem('cdcHoro') || '{}')); } catch (e) { /* sin guardado */ }
+  const HOROS = [
+    ['Hoy es tu día de suerte: +$150', () => { G.money += 150; }], ['Las estrellas piden que descanses: +20 energía', () => { S.needs.energy = clamp(S.needs.energy + 20, 0, 100); }],
+    ['Mercurio retrógrado: hoy te aburres más (−15 diversión)', () => { S.needs.fun = clamp(S.needs.fun - 15, 0, 100); }], ['Amor en el aire: tu vecino te sonríe (+5 amistad)', () => { addRel(5); }],
+    ['Día de inspiración: +25 diversión', () => { S.needs.fun = clamp(S.needs.fun + 25, 0, 100); }], ['Cuidado con los gastos: −$60', () => { G.money = Math.max(0, G.money - 60); }],
+  ];
+  { const _rp9 = renderPhone; renderPhone = function () { _rp9(); const p = $('#phone'); if (!p || p.hidden || PARTY.plan) return;
+    p.insertAdjacentHTML('beforeend', (HORO.day !== G.day ? '<button class="btn" data-a="horo" style="margin-top:8px;width:100%;justify-content:center">🔮 Leer el horóscopo de hoy</button>' : '')
+      + '<button class="btn" data-a="lotto" style="margin-top:6px;width:100%;justify-content:center">🎟️ Comprar lotería · $10</button>'); }; }
+  { const _pa9 = phoneAct; phoneAct = function (a) {
+    if (a === 'horo') { if (HORO.day === G.day) { toast('Ya leíste el horóscopo de hoy'); return; } HORO.day = G.day; try { localStorage.setItem('cdcHoro', JSON.stringify(HORO)); } catch (e) { /* nada */ }
+      const h = HOROS[Math.floor(Math.random() * HOROS.length)]; h[1](); toast('🔮 ' + h[0]); note(659.3, .05, .5); renderPhone(); return; }
+    if (a === 'lotto') { if (G.money < 10) { toast('No tienes $ suficientes', true); return; } G.money -= 10; const r = Math.random();
+      if (r < .01) { G.money += 3000; toast('🎟️ ¡PREMIO GORDO! +$3.000'); confetti(); sfx('level'); } else if (r < .12) { G.money += 60; toast('🎟️ Premio pequeño: +$60'); sfx('coin'); } else toast('🎟️ Sin suerte esta vez');
+      renderPhone(); return; }
+    _pa9(a); }; }
+  $('#phone').addEventListener('click', e => { if (e.target.closest('.px')) PARTY.plan = null; });
+
+  /* Interacciones sociales extra con las visitas */
+  { const _sm9 = simMenu; simMenu = function () { const m = _sm9(); if (VIS.st !== 'chat') return m;
+    const hearts = n => { for (let i = 0; i < n; i++) emit('heart', VIS.x + (i - n / 2) * .2, 2, VIS.z, 0, .5, 0, 1.5, .28); };
+    m.splice(Math.min(2, m.length), 0,
+      { label: 'Contar una historia de miedo', sub: '+6', run() { say('Y entonces… ¡BUUU!', 2.5); hearts(2); S.needs.fun = clamp(S.needs.fun + 5, 0, 100); addRel(6); } },
+      { label: 'Halagar', sub: '+5', run() { say('¡Qué buen look tienes!', 2.5); hearts(3); addRel(5); } });
+    return m; }; }
+
+  /* Sucesos nuevos */
+  EVT.push(['Un gato callejero te visitó y te alegró el día', () => { S.needs.fun = clamp(S.needs.fun + 12, 0, 100); }], ['Ganaste un sorteo del barrio: +$120', () => { G.money += 120; }],
+    ['Un repartidor te dejó un regalo por error: +$70', () => { G.money += 70; }], ['Se fue la luz un rato: te aburres (−8 diversión)', () => { S.needs.fun = clamp(S.needs.fun - 8, 0, 100); }],
+    ['Un ladrón rondó la casa…', () => { if (!objects.some(o => o.id === 'smokealarm')) G.money = Math.max(0, G.money - 80); }]);
+
+  /* Logros */
+  const ACH = { done: {} }; try { Object.assign(ACH, JSON.parse(localStorage.getItem('cdcAch') || '{}')); if (!ACH.done) ACH.done = {}; } catch (e) { ACH.done = {}; }
+  const ACHS = [
+    ['rico', 'Primer millar', 'Juntar $10.000', () => G.money >= 10000], ['builder', 'Constructor', '60 objetos en casa', () => objects.length >= 60], ['chef', 'Chef casero', 'Cocina nivel 3', () => skLvl('cocina') >= 3],
+    ['music', 'Músico', 'Música nivel 3', () => skLvl('musica') >= 3], ['social', 'Mejor amigo', 'Un vecino mejor amigo', () => nbBest() >= 1], ['wed', 'Boda', 'Casarte con un vecino', () => NG.list.some(n => romOf(n.name).st === 'casados')],
+    ['surv', 'Superviviente', 'Llegar al día 14', () => G.day >= 14], ['coll', 'Coleccionista', '20 tipos de muebles', () => new Set(objects.map(o => o.id)).size >= 20],
+    ['car', 'Conductor', 'Comprar el coche', () => CAR.owned], ['boss', 'Ascenso', 'Llegar al 3er puesto', () => jobLvl() >= 3], ['mec', 'Manitas', 'Mecánica nivel 2', () => skLvl('mecanica') >= 2], ['saver', 'Ahorrador', 'Ahorrar $500 en la alcancía', () => PIG.n >= 500],
+  ];
+  setInterval(() => { if (!G.started || !G.speed) return; let ch = false;
+    for (const [k, t, , f] of ACHS) if (!ACH.done[k]) { let ok = false; try { ok = f(); } catch (e) { /* nada */ }
+      if (ok) { ACH.done[k] = 1; ch = true; G.money += 200; toast('🏆 Logro: ' + t + ' (+$200)'); confetti(); sfx('level'); } }
+    if (ch) { try { localStorage.setItem('cdcAch', JSON.stringify(ACH)); } catch (e) { /* nada */ } } }, 2000);
+  { const _rs9b = renderSkills; renderSkills = function () { _rs9b(); const p = $('#skills'); if (!p || p.hidden) return; const n = ACHS.filter(a => ACH.done[a[0]]).length;
+    p.insertAdjacentHTML('beforeend', '<h3 class="h2">Logros <small>' + n + '/' + ACHS.length + '</small></h3>' + ACHS.map(a => '<div class="wt" style="' + (ACH.done[a[0]] ? '' : 'opacity:.55') + '"><i></i><b>' + (ACH.done[a[0]] ? '✔ ' : '') + a[1] + '</b>&nbsp;· ' + a[2] + '</div>').join('')); }; }
+
+  /* Deseos nuevos */
+  Object.assign(WL, { jukebox: { t: 'Bailar con la gramola', a: 'jukebox' }, dancefloor: { t: 'Bailar en la pista', a: 'dancefloor' }, pottery: { t: 'Hacer cerámica', a: 'pottery' }, carpentry: { t: 'Hacer carpintería', a: 'carpentry' },
+    chem: { t: 'Hacer un experimento', a: 'chem' }, harp: { t: 'Tocar el arpa', a: 'harp' }, pizza: { t: 'Hacer una pizza', a: 'pizza' }, wine: { t: 'Tomar una copa de vino', a: 'wine' }, zen: { t: 'Relajarte en el jardín zen', a: 'zen' },
+    pinata: { t: 'Romper una piñata', a: 'pinata' }, fortune: { t: 'Leer tu fortuna', a: 'fortune' }, photobooth: { t: 'Sacarte fotos', a: 'photobooth' }, camp: { t: 'Dormir en la tienda', a: 'camp' }, popcorn: { t: 'Hacer palomitas', a: 'popcorn' } });
+
+  /* Guardar siempre al cerrar o cambiar de pestaña */
+  const flush = () => { try { saveNow(); FAM.list[FAM.cur] = famSnap(); famSave(); } catch (e) { /* nada */ } };
+  addEventListener('beforeunload', flush); document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+
+  /* Etiqueta "Nuevo" */
+  { const _bc9 = buildCatalog; buildCatalog = function () { _bc9(); $$('.item').forEach(b => { if (N9.includes(b.dataset.id)) b.classList.add('nuevo'); }); }; }
+
+  /* Reinicio completo */
+  { const _rw9 = resetWorld; resetWorld = function () { _rw9(); PIG.n = 0; pigSave(); ACH.done = {}; HORO.day = 0; try { localStorage.removeItem('cdcAch'); localStorage.removeItem('cdcHoro'); } catch (e) { /* nada */ } }; }
+
+  $('#help ul').insertAdjacentHTML('beforeend', '<li><b>Novedades:</b> casino y centro comercial en Ciudad; logros; horóscopo y lotería en el teléfono; alcancía; alarma de humo (¡cocinar mal provoca incendios!); jardín zen, colmena, tienda de campaña, piñata, pista de baile, gramola, arpa, alfarería y más.</li>');
+  window.CDC9 = { N9, PIG, ACH, HORO };
 }
 
 boot();
