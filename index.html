@@ -2014,44 +2014,69 @@ function audioInit() {
   return AC;
 }
 /* una nota: oscilador + parcial armónico + filtro + envolvente + envío a reverb */
+/* ===== Sonido realista: que no suene a IA =====
+   El problema del motor anterior: cada sonido era UN oscilador puro, siempre
+   identico — el oido lo detecta al instante como "sintetico". Ahora:
+   (1) nada se repite igual: cada llamada desafina unos cents, cambia de
+   volumen y de posicion estereo un poco al azar; (2) los timbres se arman por
+   capas (golpe + cuerpo + parciales + ruido), no con un solo oscilador;
+   (3) campanas y monedas usan parciales INARMONICOS reales (2.02x, 2.76x,
+   5.4x), no armonicos perfectos. */
+const _jit = a => (Math.random() * 2 - 1) * a;
+const _ct = (f, c) => f * Math.pow(2, c / 1200);
 function voice(f, t, d, v, o) {
-  o = o || {}; const bus = o.bus || SFXB, a = o.att || .01, g = AC.createGain(), lp = AC.createBiquadFilter();
+  o = o || {}; const bus = o.bus || SFXB, a = o.att || .01;
+  if (o.hum !== false) { f = _ct(f, _jit(o.humC || 6)); v = v * (1 + _jit(.12)); }
+  const g = AC.createGain(), lp = AC.createBiquadFilter();
   lp.type = 'lowpass'; lp.frequency.value = o.lp || 5000;
   g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + Math.max(d, a + .03));
-  lp.connect(g); g.connect(bus);
+  let out = g;
+  if (o.pan && AC.createStereoPanner) { const pn = AC.createStereoPanner(); pn.pan.value = Math.max(-1, Math.min(1, o.pan + _jit(.08))); g.connect(pn); out = pn; }
+  lp.connect(g); out.connect(bus);
   if (o.wet) { const s = AC.createGain(); s.gain.value = o.wet; g.connect(s); s.connect(REV); }
   const mk = (type, fr, gn, dec) => {
     const os = AC.createOscillator(), og = AC.createGain(); os.type = type; os.frequency.setValueAtTime(fr, t);
-    if (o.slide) os.frequency.exponentialRampToValueAtTime(o.slide, t + d * .9);
+    if (o.slide) os.frequency.exponentialRampToValueAtTime(Math.max(20, _ct(o.slide, _jit(8))), t + d * .9);
+    if (o.vib) { const lfo = AC.createOscillator(), lg = AC.createGain(); lfo.frequency.value = o.vib[0]; lg.gain.value = fr * o.vib[1] / 1200; lfo.connect(lg); lg.connect(os.frequency); lfo.start(t); lfo.stop(t + d + .06); }
     og.gain.setValueAtTime(gn, t); if (dec) og.gain.exponentialRampToValueAtTime(.001, t + d * dec);
     os.connect(og); og.connect(lp); os.start(t); os.stop(t + d + .06);
   };
   mk(o.type || 'sine', f, 1);
-  if (o.det) mk(o.type || 'sine', f * Math.pow(2, o.det / 1200), .6);
+  if (o.det) mk(o.type || 'sine', _ct(f, o.det + _jit(3)), .6);
   if (o.part) mk('sine', f * o.part[0], o.part[1], o.part[2]);
+  if (o.part2) mk('sine', f * o.part2[0], o.part2[1], o.part2[2]);
+  if (o.noise) hit(t, o.noise[0], o.noise[1], o.noise[2] || 'highpass', o.noise[3] || 5000, 1, bus);
 }
 function hit(t, d, v, type, f, q, bus, slide) {
-  const s = AC.createBufferSource(); s.buffer = NOISE; const b = AC.createBiquadFilter(); b.type = type; b.frequency.setValueAtTime(f, t); if (slide) b.frequency.exponentialRampToValueAtTime(slide, t + d); b.Q.value = q || 1;
-  const g = AC.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  const s = AC.createBufferSource(); s.buffer = NOISE; const b = AC.createBiquadFilter(); b.type = type; b.frequency.setValueAtTime(f * (1 + _jit(.08)), t); if (slide) b.frequency.exponentialRampToValueAtTime(Math.max(30, slide * (1 + _jit(.1))), t + d); b.Q.value = q || 1;
+  const g = AC.createGain(); g.gain.setValueAtTime(Math.max(.0001, v * (1 + _jit(.1))), t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
   s.connect(b); b.connect(g); g.connect(bus || SFXB); s.start(t, Math.random() * 1.5, d + .05);
 }
 function note(f, v = .08, d = .9, type = 'triangle') {
   if (!G.sound) return;
   try { audioInit(); if (AC.state === 'suspended') AC.resume(); LASTN = performance.now();
-    voice(f, AC.currentTime, d, v * 1.5, { type, att: .008, lp: type === 'sawtooth' ? 600 : 3400, part: [2.01, .35, .4], det: 4, wet: .22 });
+    /* campanita calida (caja de musica): fundamental + parciales inarmonicos + aire */
+    voice(f, AC.currentTime, d, v * 1.5, { type, att: .008, lp: type === 'sawtooth' ? 600 : 3400, part: [2.76, .22, .35], part2: [5.4, .08, .2], det: 4, wet: .3, noise: [.04, .012, 'highpass', 6000] });
   } catch (e) { /* sin audio */ }
 }
-const BELL = { att: .002, part: [2.76, .3, .3], wet: .32 };
+/* campana real: fundamental + parciales inarmonicos con caidas distintas + golpe */
+function bell(f, t, d, v, pan) {
+  voice(f, t, d, v, { att: .002, part: [2.02, .5, .5], part2: [2.76, .32, .3], wet: .4, pan });
+  voice(f * 5.4, t, d * .3, v * .12, { att: .001, wet: .3, pan });
+  hit(t, .03, .05, 'highpass', 4000 + _jit(800), 1);
+}
 const SFX = {
-  click() { const t = AC.currentTime; voice(1900, t, .05, .05, { att: .002, slide: 1100, wet: .04 }); voice(950, t, .04, .03, { type: 'triangle', att: .002 }); },
-  pop() { const t = AC.currentTime; voice(520, t, .13, .05, { att: .003, slide: 900, wet: .15 }); },
-  place() { const t = AC.currentTime; voice(150, t, .2, .24, { att: .002, slide: 62 }); hit(t, .06, .09, 'bandpass', 900, 1); voice(660, t + .03, .3, .04, { type: 'triangle', wet: .2 }); },
-  cash() { const t = AC.currentTime; [1318.5, 1760, 2093].forEach((f, i) => voice(f, t + i * .07, .55, .06, BELL)); hit(t, .22, .03, 'highpass', 6500); },
-  error() { const t = AC.currentTime; voice(311, t, .2, .06, { type: 'square', lp: 900, att: .005 }); voice(233, t + .15, .32, .06, { type: 'square', lp: 800, att: .005 }); },
-  level() { const t = AC.currentTime; [523.3, 659.3, 784, 1046.5].forEach((f, i) => voice(f, t + i * .09, .7, .06, BELL)); [523.3, 659.3, 784].forEach(f => voice(f * 2, t + .4, 1.2, .035, BELL)); },
-  doorbell() { const t = AC.currentTime; voice(659.3, t, 1.3, .08, { att: .003, part: [2.76, .35, .25], wet: .35 }); voice(523.3, t + .42, 1.8, .08, { att: .003, part: [2.76, .35, .25], wet: .35 }); },
-  thunder() { const t = AC.currentTime; hit(t, 2.8, .32, 'lowpass', 260, .7, SFXB, 70); voice(58, t, 2.4, .2, { att: .05, slide: 38 }); },
-  faint() { const t = AC.currentTime; voice(420, t, 1, .07, { att: .01, slide: 90, lp: 1200, wet: .3 }); voice(210, t + .05, 1, .05, { type: 'triangle', slide: 60 }); }
+  click() { const t = AC.currentTime; hit(t, .025, .07, 'highpass', 2800 + _jit(500), 1); voice(1750 + _jit(250), t, .035, .035, { att: .001, slide: 1050, wet: .03, pan: _jit(.2) }); },
+  pop() { const t = AC.currentTime; voice(500 + _jit(60), t, .14, .05, { att: .004, slide: 880, wet: .18, pan: _jit(.15) }); hit(t, .05, .02, 'bandpass', 1200, 1); },
+  place() { const t = AC.currentTime; voice(145 + _jit(15), t, .22, .26, { att: .002, slide: 58 }); voice(238 + _jit(20), t, .16, .1, { att: .002, part: [2.14, .4, .5] }); hit(t, .05, .1, 'bandpass', 750 + _jit(150), 1.2); hit(t, .02, .04, 'highpass', 3500, 1); },
+  cash() { const t = AC.currentTime; [0, 1, 2].forEach(i => bell(1750 + Math.random() * 650, t + i * (.06 + Math.random() * .03), .5, .05)); hit(t, .18, .025, 'highpass', 6500, 1); },
+  coin() { const t = AC.currentTime; bell(2100 + _jit(300), t, .45, .06); hit(t, .03, .03, 'highpass', 6000, 1); },
+  ok() { const t = AC.currentTime; bell(659.3, t, .9, .06); bell(880, t + .11 + Math.random() * .02, 1.1, .055); },
+  error() { const t = AC.currentTime; voice(300 + _jit(12), t, .22, .055, { type: 'sawtooth', lp: 750, att: .006, det: 5, pan: _jit(.1) }); voice(225 + _jit(10), t + .16, .34, .055, { type: 'sawtooth', lp: 650, att: .006, det: 5, pan: _jit(.1) }); hit(t, .08, .04, 'lowpass', 300, 1); },
+  level() { const t = AC.currentTime; [523.3, 659.3, 784, 1046.5].forEach((f, i) => bell(f, t + i * (.085 + Math.random() * .015), .8, .055)); [523.3, 659.3, 784].forEach(f => voice(f * 2, t + .42, 1.1, .03, { att: .004, wet: .4, vib: [5.5, 6] })); },
+  doorbell() { const t = AC.currentTime; bell(659.3, t, 1.4, .075); bell(523.3, t + .42, 1.9, .07); },
+  thunder() { const t = AC.currentTime; hit(t, .12, .3, 'highpass', 2500, .8); hit(t, 2.9, .3, 'lowpass', 110 + _jit(30), .6, SFXB, 55); voice(62 + _jit(8), t, 2.5, .18, { att: .25, slide: 36 }); },
+  faint() { const t = AC.currentTime; voice(415 + _jit(15), t, 1.05, .06, { att: .012, slide: 88, lp: 1100, wet: .32, vib: [6, 14] }); voice(208, t + .06, 1, .045, { type: 'triangle', slide: 58, vib: [6, 14] }); hit(t, .9, .02, 'bandpass', 900, .7, SFXB, 300); }
 };
 function sfx(n) { if (!G.sound) return; try { audioInit(); if (AC.state === 'suspended') AC.resume(); SFX[n] && SFX[n](); } catch (e) { /* sin audio */ } }
 const PENTA = [261.6, 293.7, 329.6, 392, 440, 523.3, 587.3, 659.3];
@@ -3386,7 +3411,7 @@ const RT = [40, 100, 200], RLN = ['Conocido', 'Amigo', 'Buen amigo', 'Mejor amig
 const relLvl = () => RT.filter(t => REL.pts >= t).length;
 function addRel(n) {
   const b = relLvl(); REL.pts = Math.max(-60, REL.pts + n); const a = relLvl();
-  if (a > b) { G.money += a * 200; toast('¡' + REL.name + ' ahora es tu ' + RLN[a].toLowerCase() + '! +$' + a * 200); note(523.3, .06, .4); setTimeout(() => note(784, .06, .6), 150); }
+  if (a > b) { G.money += a * 200; toast('¡' + REL.name + ' ahora es tu ' + RLN[a].toLowerCase() + '! +$' + a * 200); sfx('coin'); }
   try { localStorage.setItem('cdcRel', JSON.stringify(REL)); } catch (e) { /* nada */ } renderSkills();
 }
 setInterval(() => { if (G.started && G.speed && VIS.st === 'chat') addRel(1); }, 1000);
@@ -3476,7 +3501,7 @@ function goToWork() {
   JOB.atWork = true; JOB.lastShift = G.day; JOB.returnAbs = jobAbs() + (SHIFT_END - G.min); jobSave();
   sim.root.visible = false; S.state = 'away'; S.label = 'En el trabajo';
   CAM.follow = false; syncCamBtn();
-  toast('¡A trabajar! Vuelves a las 17:00'); note(523.3, .06, .5);
+  toast('¡A trabajar! Vuelves a las 17:00'); sfx('ok');
   saveSoon();
 }
 function returnFromWork() {
@@ -3489,7 +3514,7 @@ function returnFromWork() {
   S.needs.hunger = clamp(S.needs.hunger - 15, 0, 100);
   S.needs.fun = clamp(S.needs.fun - 8, 0, 100);
   toast('De vuelta del trabajo  +$' + pay);
-  note(659.3, .06, .5); setTimeout(() => note(784, .06, .6), 140);
+  sfx('coin');
   if (jobLvl() > b) toast('¡Ascenso! Ahora eres ' + CAREER[jobLvl()]);
   try { localStorage.setItem('cdcProg', JSON.stringify(PROG)); } catch (e) { /* nada */ }
   wantAct('work');
@@ -3514,7 +3539,7 @@ function payBills() {
   if (!BILLS.list.length) { toast('No tienes facturas pendientes'); return false; }
   if (G.money < total) { toast('No tienes $ suficientes para pagar $' + total, true); return false; }
   G.money -= total; BILLS.list = []; billsSave(); setMailboxFlag(false);
-  toast('Facturas pagadas  −$' + total); note(659.3, .06, .5); saveSoon(); return true;
+  toast('Facturas pagadas  −$' + total); sfx('cash'); saveSoon(); return true;
 }
 function mailboxMenu() {
   if (!BILLS.list.length) return [{ label: 'Sin facturas', sub: 'Todo al día', run() { toast('No tienes facturas pendientes'); } }];
@@ -3577,7 +3602,7 @@ setInterval(() => {
   }
   if (DELIVERY.atAbs && jobAbs() >= DELIVERY.atAbs) {
     if (JOB.atWork) DELIVERY.atAbs = JOB.returnAbs;
-    else { DELIVERY.atAbs = 0; toast('¡Llegó tu pedido!'); say('¡A comer!'); note(784, .06, .6); enqueue({ kind: 'eat', label: 'Comer pedido', auto: false }); }
+    else { DELIVERY.atAbs = 0; toast('¡Llegó tu pedido!'); say('¡A comer!'); sfx('ok'); enqueue({ kind: 'eat', label: 'Comer pedido', auto: false }); }
   }
   if (G.day > 1 && (G.day - 1) % 3 === 0 && G.min >= 480 && BILLS.lastBillDay !== G.day) billArrive();
   if (BILLS.feeDay !== G.day) {
@@ -4049,7 +4074,7 @@ setInterval(() => {
   if (!G.started || !G.speed || JOB.atWork || OUT.on || COM.on || FAINT.on) return;
   if (LIFE.last !== G.day && G.min >= 480 && cycleDay() === LIFE.bd) {
     LIFE.last = G.day; LIFE.bdDay = G.day; LIFE.age++; G.money += 100; S.needs.fun = clamp(S.needs.fun + 30, 0, 100); lifeSave();
-    toast('🎂 ¡Cumpleaños de ' + S.name + '! Cumple ' + LIFE.age + ' años · regalo +$100'); confetti(); note(523.3, .06, .4); setTimeout(() => note(659.3, .06, .4), 130); setTimeout(() => note(784, .06, .7), 260); saveSoon(); return; }
+    toast('🎂 ¡Cumpleaños de ' + S.name + '! Cumple ' + LIFE.age + ' años · regalo +$100'); confetti(); sfx('coin'); setTimeout(() => note(659.3, .06, .4), 130); setTimeout(() => note(784, .06, .7), 260); saveSoon(); return; }
   for (const n of NG.list) { if (n.lastBd !== G.day && cycleDay() === n.bd) { n.lastBd = G.day; n.age++; const i = NG.list.indexOf(n); n.pts = (n.pts || 0) + 5; if (i === NG.cur) REL.pts = n.pts; ngSave(); toast('🎂 ¡Hoy ' + n.name + ' cumple ' + n.age + ' años!'); ngPick(i); if (VIS.invite()) { G.money += 50; saveSoon(); toast(n.name + ' viene a celebrarlo y te trae $50 🎁'); } } }
 }, 1000);
 { const _rp4 = renderPhone; renderPhone = function () { _rp4(); const p = $('#phone'); if (!p || p.hidden) return;
@@ -4141,7 +4166,7 @@ function driveStep(dt) {
 $('#phone').addEventListener('click', e => { if (!e.target.closest('[data-car]')) return;
   if (G.money < 1800) { toast('Necesitas $1.800 para el coche', true); return; }
   G.money -= 1800; CAR.owned = true; carMesh.visible = true; carPark(); try { localStorage.setItem('cdcCar', '1'); } catch (e2) { /* nada */ }
-  toast('🚗 ¡Coche nuevo! Estacionado frente a la casa'); note(523.3, .06, .4); setTimeout(() => note(784, .06, .6), 140); renderPhone(); saveSoon(); });
+  toast('🚗 ¡Coche nuevo! Estacionado frente a la casa'); sfx('cash'); renderPhone(); saveSoon(); });
 
 /* ===== El coche también lleva al Sim a los lugares de la ciudad (ida y vuelta) ===== */
 const CM = { on: false, pts: [], pi: 1, back: false };
@@ -4374,7 +4399,7 @@ setInterval(drawPortrait, 1200); drawPortrait();
   }
   function oppProgress(id) {
     for (const o of OPP.list.slice()) if (o.acts.includes(id)) { o.have++;
-      if (o.have >= o.n) { G.money += o.r; OPP.done++; OPP.list = OPP.list.filter(x => x !== o); toast('Oportunidad cumplida: ' + o.t + ' (+$' + o.r + ')'); note(784, .06, .5); for (let k = 0; k < 3; k++) emit('heart', S.pos.x + (k - 1) * .3, S.y + 2.2, S.pos.z, 0, .6, 0, 1.6, .3); } }
+      if (o.have >= o.n) { G.money += o.r; OPP.done++; OPP.list = OPP.list.filter(x => x !== o); toast('Oportunidad cumplida: ' + o.t + ' (+$' + o.r + ')'); sfx('coin'); for (let k = 0; k < 3; k++) emit('heart', S.pos.x + (k - 1) * .3, S.y + 2.2, S.pos.z, 0, .6, 0, 1.6, .3); } }
     oppSave();
   }
   { const _f6 = finishDo; finishDo = function () { const a = S.act, c = S.cancelled; _f6(); if (a && !c) { oppProgress(a.id); if (a.id === 'call') addRel(3); } }; }
@@ -4399,7 +4424,7 @@ setInterval(drawPortrait, 1200); drawPortrait();
   }
   let lastS = -1;
   setInterval(() => { const s = seasonIdx(); if (s === lastS) return; applySeason(s);
-    if (lastS >= 0 && G.started) { G.money += 150; toast('Llegó ' + SEAS[s] + ' · regalo de temporada +$150'); note(659.3, .05, .5); } lastS = s; }, 1000);
+    if (lastS >= 0 && G.started) { G.money += 150; toast('Llegó ' + SEAS[s] + ' · regalo de temporada +$150'); sfx('coin'); } lastS = s; }, 1000);
   const snowN = 700, snowG = new THREE.BufferGeometry(), snowA = new Float32Array(snowN * 3);
   for (let i = 0; i < snowN; i++) { snowA[i * 3] = (Math.random() - .5) * 80; snowA[i * 3 + 1] = Math.random() * 30; snowA[i * 3 + 2] = (Math.random() - .5) * 80; }
   snowG.setAttribute('position', new THREE.BufferAttribute(snowA, 3));
@@ -4608,7 +4633,7 @@ function musStep(t, s, build, night) {
   const rest = night ? .5 : build ? .12 : .2;
   const play = (d, len) => { if (st !== 0 && Math.random() < rest) return;
     const o = night ? { att: .008, lp: 4000, part: [3, .1, .2], wet: .6 } : build ? { type: 'triangle', att: .004, lp: 2800, part: [4, .18, .25], wet: .25 } : { att: .005, lp: 5000, part: [4, .14, .3], det: 3, wet: .4 };
-    voice(mf(dm(d)), t, s * len, .07, Object.assign(o, B)); };
+    voice(mf(dm(d)), t + (Math.random() < .35 ? Math.random() * .012 : 0), s * len, .07, Object.assign(o, B)); };
   if (bi < 3) { const e = MUS.motif.find(x => x.s === st);
     if (e) { MUS.cd = clamp(MUS.cd + e.dd, -1, 8); if (st % 8 === 0 || e === MUS.motif[0]) MUS.cd = snap(MUS.cd); play(MUS.cd, st % 8 === 0 ? 7 : 3); } }
   else { if (st === 0) { MUS.cd = snap(MUS.d0); play(MUS.cd, night ? 14 : 10); } else if (st === 14 && Math.random() < .4) { MUS.cd = snap(MUS.cd + 1); play(MUS.cd, 2); } }
